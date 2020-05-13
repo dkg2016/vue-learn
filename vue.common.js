@@ -3,6 +3,8 @@
  * (c) 2014-2018 Evan You
  * Released under the MIT License.
  */
+'use strict';
+
 /*  */
 
 var emptyObject = Object.freeze({});
@@ -701,15 +703,10 @@ Dep.prototype.notify = function notify () {
 // the current target watcher being evaluated.
 // this is globally unique because there could be only one
 // watcher being evaluated at any time.
-
-// 静态属性 target
-// 这是一个全局唯一 Watcher
-
 Dep.target = null;
 var targetStack = [];
 
 function pushTarget (_target) {
-  // 实际上就是把 Dep.target 赋值为当前的渲染 watcher 并压栈
   if (Dep.target) { targetStack.push(Dep.target); }
   Dep.target = _target;
 }
@@ -720,7 +717,6 @@ function popTarget () {
 
 /*  */
 
-// 虚拟 DOM,构造函数
 var VNode = function VNode (
   tag,
   data,
@@ -872,23 +868,11 @@ function toggleObserving (value) {
  * object's property keys into getter/setters that
  * collect dependencies and dispatch updates.
  */
-
-// 给对象的属性添加 getter 和 setter
-// ob = new Observer(value)
-
-// ob = {
-//   value: value,
-//   dep: new Dep(),
-//   vmCount: 0
-// }
-
 var Observer = function Observer (value) {
   this.value = value;
   this.dep = new Dep();
   this.vmCount = 0;
-  // 把自身实例添加到数据对象 value 的 __ob__ 属性上
   def(value, '__ob__', this);
-
   if (Array.isArray(value)) {
     var augment = hasProto
       ? protoAugment
@@ -950,18 +934,11 @@ function copyAugment (target, src, keys) {
  * returns the new observer if successfully observed,
  * or the existing observer if the value already has one.
  */
-
-// 用来监测数据的变化
-// observe(data, true /* asRootData */)
-
 function observe (value, asRootData) {
-  // 不是obj，或者是 VNode 实例，直接返回
   if (!isObject(value) || value instanceof VNode) {
     return
   }
   var ob;
-
-  // 已经是 Observer 的实例，直接返回
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__;
   } else if (
@@ -982,12 +959,6 @@ function observe (value, asRootData) {
 /**
  * Define a reactive property on an Object.
  */
-// 定义一个响应式对象，给对象动态添加 getter 和 setter，
-// const keys = Object.keys(obj)
-// for (let i = 0; i < keys.length; i++) {
-//   defineReactive(obj, keys[i])
-// }
-
 function defineReactive (
   obj,
   key,
@@ -1009,9 +980,7 @@ function defineReactive (
   }
   var setter = property && property.set;
 
-  // 对子对象递归调用 observe 方法
   var childOb = !shallow && observe(val);
-
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
@@ -1385,15 +1354,11 @@ function validateComponentName (name) {
  * Ensure all props option syntax are normalized into the
  * Object-based format.
  */
-// 对 props 的规范化
-// 把编写的 props 转成对象格式
 function normalizeProps (options, vm) {
   var props = options.props;
   if (!props) { return }
   var res = {};
   var i, val, name;
-
-  // 是数组的情况
   if (Array.isArray(props)) {
     i = props.length;
     while (i--) {
@@ -1404,12 +1369,7 @@ function normalizeProps (options, vm) {
       } else if (process.env.NODE_ENV !== 'production') {
         warn('props must be strings when using array syntax.');
       }
-      // options.props = {
-      //   name: { type: null },
-      //   nickName: { type: null }
-      // }
     }
-  // 是 对象的情况
   } else if (isPlainObject(props)) {
     for (var key in props) {
       val = props[key];
@@ -1481,7 +1441,7 @@ function assertObjectType (name, value, vm) {
 }
 
 /**
- * Merge two option objects into a new one. // 合并两个 options 到一起
+ * Merge two option objects into a new one.
  * Core utility used in both instantiation and inheritance.
  */
 function mergeOptions (
@@ -1497,7 +1457,6 @@ function mergeOptions (
     child = child.options;
   }
 
-  // 对 props 的规范化
   normalizeProps(child, vm);
   normalizeInject(child, vm);
   normalizeDirectives(child);
@@ -1532,7 +1491,6 @@ function mergeOptions (
  * This function is used because child instances need access
  * to assets defined in its ancestor chain.
  */
-// 原型链
 function resolveAsset (
   options,
   type,
@@ -1562,23 +1520,19 @@ function resolveAsset (
 }
 
 /*  */
-// 校验 prop
+
 function validateProp (
   key,
-  propOptions, // 自己的 props
-  propsData,   // 父组件传递的 prop 数据
+  propOptions,
+  propsData,
   vm
 ) {
   var prop = propOptions[key];
   var absent = !hasOwn(propsData, key);
   var value = propsData[key];
   // boolean casting
-  // 判断是不是 Boolean 类型
   var booleanIndex = getTypeIndex(Boolean, prop.type);
-
-  // 如果是 Boolean 类型
   if (booleanIndex > -1) {
-    // 判断如果父组件没有传递这个 prop 数据并且没有设置 default 的情况
     if (absent && !hasOwn(prop, 'default')) {
       value = false;
     } else if (value === '' || value === hyphenate(key)) {
@@ -1591,10 +1545,7 @@ function validateProp (
     }
   }
   // check default value
-  // 默认数据处理逻辑
-  // 当 value 的值为 undefined 的时候，说明父组件根本就没有传这个 prop
   if (value === undefined) {
-    // 通过 getPropDefaultValue(vm, prop, key) 获取这个 prop 的默认值
     value = getPropDefaultValue(vm, prop, key);
     // since the default value is a fresh copy,
     // make sure to observe it.
@@ -1608,7 +1559,6 @@ function validateProp (
     // skip validation for weex recycle-list child component props
     !(false && isObject(value) && ('@binding' in value))
   ) {
-    // prop 断言
     assertProp(prop, key, value, vm, absent);
   }
   return value
@@ -1617,7 +1567,6 @@ function validateProp (
 /**
  * Get the default value of a prop.
  */
-// 通过 getPropDefaultValue(vm, prop, key) 获取这个 prop 的默认值
 function getPropDefaultValue (vm, prop, key) {
   // no default, return undefined
   if (!hasOwn(prop, 'default')) {
@@ -1651,8 +1600,6 @@ function getPropDefaultValue (vm, prop, key) {
 /**
  * Assert whether a prop is valid.
  */
-// prop 断言
-// 断言这个 prop 是否合法
 function assertProp (
   prop,
   name,
@@ -1897,13 +1844,8 @@ function nextTick (cb, ctx) {
       _resolve(ctx);
     }
   });
-  // 不在等待时，压入栈，同时加入异步队列，flushCallbacks 未执行
-  // 等待状态时，只 压入栈
-  // 异步队列执行时，即 flushCallbacks，会执行已经在栈里面的所有回调。
-  // 同时把 pending 改为 false
   if (!pending) {
     pending = true;
-    // setTimeout(flushCallbacks, 0);
     if (useMacroTask) {
       macroTimerFunc();
     } else {
@@ -2239,20 +2181,11 @@ function checkProp (
 // generated render function is guaranteed to return Array<VNode>. There are
 // two cases where extra normalization is needed:
 
-// TODO:对于纯 html 标签，normalize 完全可以跳过，因为生成的render函数可以保证返回一个 Vnode 数组，
-// 以下两种情况，需要normalization。
-
 // 1. When the children contains components - because a functional component
 // may return an Array instead of a single root. In this case, just a simple
 // normalization is needed - if any child is an Array, we flatten the whole
 // thing with Array.prototype.concat. It is guaranteed to be only 1-level deep
 // because functional components already normalize their own children.
-
-// TODO: 当 children 包含组件时，因为函数式组件可能返回一个数组。此 case 下，需要一个简单的normalization。
-// 如果数组元素也是一个数组，使用数组的 concat 方法将其拍平。保证只有一层。
-
-// simpleNormalizeChildren 方法调用场景是 render 函数是编译生成的。
-//理论上编译生成的 children 都已经是 VNode 类型的，但这里有一个例外，就是 functional component 函数式组件返回的是一个数组而不是一个根节点，所以会通过 Array.prototype.concat 方法把整个 children 数组打平，让它的深度只有一层。
 function simpleNormalizeChildren (children) {
   for (var i = 0; i < children.length; i++) {
     if (Array.isArray(children[i])) {
@@ -2266,15 +2199,11 @@ function simpleNormalizeChildren (children) {
 // e.g. <template>, <slot>, v-for, or when the children is provided by user
 // with hand-written render functions / JSX. In such cases a full normalization
 // is needed to cater to all possible types of children values.
-
-// TODO: 当 children 包含那些会产生嵌套数组的组件，或者 children 是手写 render 而来时，需要对 children
-// 手写的 render，children 存在多层嵌套的情况，所以组要深度处理，拍平
-// 进行一次完全 normalization，所有可能类型的子类型 都变成 VNode
 function normalizeChildren (children) {
-  return isPrimitive(children) // 是否是一个原始值，例如 this.msg
-    ? [createTextVNode(children)] // 是原始值的话，直接返回文本 VNode，并数组
-    : Array.isArray(children)     // 再判断是否数组
-      ? normalizeArrayChildren(children)  // 深度处理
+  return isPrimitive(children)
+    ? [createTextVNode(children)]
+    : Array.isArray(children)
+      ? normalizeArrayChildren(children)
       : undefined
 }
 
@@ -2282,7 +2211,6 @@ function isTextNode (node) {
   return isDef(node) && isDef(node.text) && isFalse(node.isComment)
 }
 
-// 手写 render 函数，当 children 是数组的时候，深度处理
 function normalizeArrayChildren (children, nestedIndex) {
   var res = [];
   var i, c, lastIndex, last;
@@ -2292,7 +2220,6 @@ function normalizeArrayChildren (children, nestedIndex) {
     lastIndex = res.length - 1;
     last = res[lastIndex];
     //  nested
-    // 嵌套数组
     if (Array.isArray(c)) {
       if (c.length > 0) {
         c = normalizeArrayChildren(c, ((nestedIndex || '') + "_" + i));
@@ -2308,7 +2235,6 @@ function normalizeArrayChildren (children, nestedIndex) {
         // merge adjacent text nodes
         // this is necessary for SSR hydration because text nodes are
         // essentially merged when rendered to HTML strings
-        // 如果 res 的最后一个 VNode 是一个文本节点，进行拼接
         res[lastIndex] = createTextVNode(last.text + c);
       } else if (c !== '') {
         // convert primitive to vnode
@@ -2718,43 +2644,21 @@ function initLifecycle (vm) {
   vm._isBeingDestroyed = false;
 }
 
-// 首次渲染和数据更新的时候，都会调用 _update
-// _update 用来把 VNode 渲染成真正的 DOM，并插入到 document 中
 function lifecycleMixin (Vue) {
   Vue.prototype._update = function (vnode, hydrating) {
     var vm = this;
-    debugger;
-
-    // 钩子函数
-    // 已经渲染过的情况，触发 更新的钩子函数
     if (vm._isMounted) {
       callHook(vm, 'beforeUpdate');
     }
-
-    // 拿到当前的 el
-    // 是一个真实 DOM 结构，之前 $mount 挂载的
     var prevEl = vm.$el;
-
-    // 拿到旧的 vnode
     var prevVnode = vm._vnode;
-
     var prevActiveInstance = activeInstance;
     activeInstance = vm;
-
-    // 更新旧的 vnode
-    // 本次生成的 vnode，成为了新的 vnode
     vm._vnode = vnode;
-
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.
-
-    // 如果没有旧的 vnode，说明是首次渲染
     if (!prevVnode) {
-      // 首次渲染
       // initial render
-
-      // 首次渲染的时候，没有旧的 VNode，把挂载的 el 传递给 patch 函数
-      // el 是真实的 DOM 结构
       vm.$el = vm.__patch__(
         vm.$el, vnode, hydrating, false /* removeOnly */,
         vm.$options._parentElm,
@@ -2764,7 +2668,6 @@ function lifecycleMixin (Vue) {
       // this prevents keeping a detached DOM tree in memory (#5851)
       vm.$options._parentElm = vm.$options._refElm = null;
     } else {
-      // 非首次渲染 更新
       // updates
       vm.$el = vm.__patch__(prevVnode, vnode);
     }
@@ -2835,30 +2738,18 @@ function lifecycleMixin (Vue) {
   };
 }
 
-
-// return mount.call()方法调用
-// return mountComponent(this, el, hydrating)
-// 做挂载的方法
 function mountComponent (
   vm,
   el,
   hydrating
 ) {
-  // el dom
   vm.$el = el;
-  // 讲道理，此时肯定有 render 函数了
-
-  // 如果上一步没有传过来 render 函数
-  // 即 既没有手写 render 函数，也没有模板编译成 render 函数
   if (!vm.$options.render) {
-    // 此种情况下，将 render 函数 定义为一个创建空 vnode 的函数
     vm.$options.render = createEmptyVNode;
-    // 并且开发环境下，报警告
     if (process.env.NODE_ENV !== 'production') {
       /* istanbul ignore if */
       if ((vm.$options.template && vm.$options.template.charAt(0) !== '#') ||
         vm.$options.el || el) {
-        // 用了 runtime-only 版本，应该手写 render 函数，此处却只写了template，因此缺乏 render 函数，报错
         warn(
           'You are using the runtime-only build of Vue where the template ' +
           'compiler is not available. Either pre-compile the templates into ' +
@@ -2873,15 +2764,10 @@ function mountComponent (
       }
     }
   }
-
-  // 触发 钩子函数
   callHook(vm, 'beforeMount');
 
-  // 声明一个变量（将来是函数）
   var updateComponent;
   /* istanbul ignore if */
-
-  // 开发环境下的性能埋点
   if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
     updateComponent = function () {
       var name = vm._name;
@@ -2900,14 +2786,7 @@ function mountComponent (
       measure(("vue " + name + " patch"), startTag, endTag);
     };
   } else {
-    // 将 updateComponent 定义为一个函数（做最终渲染的）
-    // 此时函数并未执行，仅定义
-    // updateComponent执行时，会执行 vm._update(vm._render(), hydrating);
     updateComponent = function () {
-      // update函数，第一个参数是 Vnode，第二个是一个布尔值
-      // 初次渲染，从 Watcher 中调用 updateComponent 函数，并赋值给 Watcher 中 value
-      // 即调用 vm._update() 函数
-      // _update() 函数接收两个参数，render 生成的 Vnode 和 hydrating
       vm._update(vm._render(), hydrating);
     };
   }
@@ -2915,21 +2794,13 @@ function mountComponent (
   // we set this to vm._watcher inside the watcher's constructor
   // since the watcher's initial patch may call $forceUpdate (e.g. inside child
   // component's mounted hook), which relies on vm._watcher being already defined
-
-
-  // 渲染watcher（第一次渲染）,上面定义的函数，作为第二个参数传入
-  // 第一次做挂载时，实例化一个 Watcher
-  // 实例化 Watcher 的过程中，调用了传入的 updateComponent 方法
   new Watcher(vm, updateComponent, noop, null, true /* isRenderWatcher */);
   hydrating = false;
 
   // manually mounted instance, call mounted on self
   // mounted is called for render-created child components in its inserted hook
-
-  // vm.$vnode 表示 Vue 实例的父虚拟 Node
   if (vm.$vnode == null) {
     vm._isMounted = true;
-    // 渲染完毕，触发钩子函数
     callHook(vm, 'mounted');
   }
   return vm
@@ -2970,7 +2841,6 @@ function updateChildComponent (
   vm.$listeners = listeners || emptyObject;
 
   // update props
-  // 更新 props
   if (propsData && vm.$options.props) {
     toggleObserving(false);
     var props = vm._props;
@@ -2978,7 +2848,6 @@ function updateChildComponent (
     for (var i = 0; i < propKeys.length; i++) {
       var key = propKeys[i];
       var propOptions = vm.$options.props; // wtf flow?
-      // 重新验证和计算新的 prop 数据
       props[key] = validateProp(key, propOptions, propsData, vm);
     }
     toggleObserving(true);
@@ -3212,12 +3081,9 @@ var uid$1 = 0;
  * and fires callback when the expression value changes.
  * This is used for both the $watch() api and directives.
  */
-// new Watcher(vm, updateComponent, noop, null, true /* isRenderWatcher */);
-// 初次渲染
-
 var Watcher = function Watcher (
   vm,
-  expOrFn,  // 函数
+  expOrFn,
   cb,
   options,
   isRenderWatcher
@@ -3240,17 +3106,14 @@ var Watcher = function Watcher (
   this.id = ++uid$1; // uid for batching
   this.active = true;
   this.dirty = this.lazy; // for lazy watchers
-
   this.deps = [];
   this.newDeps = [];
   this.depIds = new _Set();
   this.newDepIds = new _Set();
-
   this.expression = process.env.NODE_ENV !== 'production'
     ? expOrFn.toString()
     : '';
   // parse expression for getter
-  // 传入的方法赋值给 watcher 的 getter 属性
   if (typeof expOrFn === 'function') {
     this.getter = expOrFn;
   } else {
@@ -3265,8 +3128,6 @@ var Watcher = function Watcher (
       );
     }
   }
-
-  // 在实例化一个 Watcher 的最后，调用 get 方法
   this.value = this.lazy
     ? undefined
     : this.get();
@@ -3280,14 +3141,7 @@ Watcher.prototype.get = function get () {
   var value;
   var vm = this.vm;
   try {
-    // TODO:在此处调用传进来的函数
-    // this 是 vm,参数是 vm
-    // this.getter = expOrFn = updateComponent(vm); vm 作为参数和 this 传给 updateComponent 函数
-
     value = this.getter.call(vm, vm);
-    // 即 vm._update(vm._render(), hydrating)
-    //执行 vm._render() 方法，这个方法会生成 渲染 VNode，并且在这个过程中会对 vm 上的数据访问，这个时候就触发了数据对象的 getter
-
   } catch (e) {
     if (this.user) {
       handleError(e, vm, ("getter for watcher \"" + (this.expression) + "\""));
@@ -3324,7 +3178,7 @@ Watcher.prototype.addDep = function addDep (dep) {
  * Clean up for dependency collection.
  */
 Watcher.prototype.cleanupDeps = function cleanupDeps () {
-  var this$1 = this;
+    var this$1 = this;
 
   var i = this.deps.length;
   while (i--) {
@@ -3440,42 +3294,32 @@ var sharedPropertyDefinition = {
   set: noop
 };
 
-// proxy(vm, "_data", key);
-// 代理函数
-// vm._data.xxxx ==> vm.xxx
 function proxy (target, sourceKey, key) {
   sharedPropertyDefinition.get = function proxyGetter () {
-    return this[sourceKey][key]  // this[_data][key]
+    return this[sourceKey][key]
   };
   sharedPropertyDefinition.set = function proxySetter (val) {
     this[sourceKey][key] = val;
   };
-  
   Object.defineProperty(target, key, sharedPropertyDefinition);
 }
 
 function initState (vm) {
   vm._watchers = [];
   var opts = vm.$options;
-  // 初始化 props
   if (opts.props) { initProps(vm, opts.props); }
-
   if (opts.methods) { initMethods(vm, opts.methods); }
   if (opts.data) {
-    // 初始化 data
     initData(vm);
   } else {
     observe(vm._data = {}, true /* asRootData */);
   }
-  // 初始化 computed
   if (opts.computed) { initComputed(vm, opts.computed); }
-  // 初始化 watch
   if (opts.watch && opts.watch !== nativeWatch) {
     initWatch(vm, opts.watch);
   }
 }
 
-// 初始化 props
 function initProps (vm, propsOptions) {
   var propsData = vm.$options.propsData || {};
   var props = vm._props = {};
@@ -3489,7 +3333,6 @@ function initProps (vm, propsOptions) {
   }
   var loop = function ( key ) {
     keys.push(key);
-    // 校验,获取到 prop 的值
     var value = validateProp(key, propsOptions, propsData, vm);
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
@@ -3513,14 +3356,12 @@ function initProps (vm, propsOptions) {
         }
       });
     } else {
-      // 把每个 prop 对应的值变成响应式，可以通过 vm._props.xxx 访问到定义 props 中对应的属性
       defineReactive(props, key, value);
     }
     // static props are already proxied on the component's prototype
     // during Vue.extend(). We only need to proxy props defined at
     // instantiation here.
     if (!(key in vm)) {
-      // 把 vm._props.xxx 的访问代理到 vm.xxx 上
       proxy(vm, "_props", key);
     }
   };
@@ -3529,10 +3370,8 @@ function initProps (vm, propsOptions) {
   toggleObserving(true);
 }
 
-// 初始化 data
 function initData (vm) {
   var data = vm.$options.data;
-  // data 期望是一个函数
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {};
@@ -3551,7 +3390,6 @@ function initData (vm) {
   var i = keys.length;
   while (i--) {
     var key = keys[i];
-    // 不可以重复在 methods props
     if (process.env.NODE_ENV !== 'production') {
       if (methods && hasOwn(methods, key)) {
         warn(
@@ -3567,12 +3405,10 @@ function initData (vm) {
         vm
       );
     } else if (!isReserved(key)) {
-      // data 代理到 vm
       proxy(vm, "_data", key);
     }
   }
   // observe data
-  // 调用 observe 方法观测整个 data 的变化，把 data 也变成响应式
   observe(data, true /* asRootData */);
 }
 
@@ -3598,7 +3434,6 @@ function initComputed (vm, computed) {
   var isSSR = isServerRendering();
 
   for (var key in computed) {
-    // getter 是某个计算属性的 getter，普通函数 或者是手写的计算属性 get 函数
     var userDef = computed[key];
     var getter = typeof userDef === 'function' ? userDef : userDef.get;
     if (process.env.NODE_ENV !== 'production' && getter == null) {
@@ -3610,7 +3445,6 @@ function initComputed (vm, computed) {
 
     if (!isSSR) {
       // create internal watcher for the computed property.
-      // 为每一个 计算属性 key 添加一个 watcher
       watchers[key] = new Watcher(
         vm,
         getter || noop,
@@ -3664,7 +3498,6 @@ function defineComputed (
       );
     };
   }
-  // 代理到 target/vm 上，搭配 getter 函数
   Object.defineProperty(target, key, sharedPropertyDefinition);
 }
 
@@ -4281,16 +4114,14 @@ function mergeProps (to, from) {
 /*  */
 
 // inline hooks to be invoked on component VNodes during patch
-// patch 过程中会触发的一些钩子函数
 var componentVNodeHooks = {
-  // patch 一个组件时，会执行 init
   init: function init (
     vnode,
     hydrating,
     parentElm,
     refElm
   ) {
-    if ( // keep-alive 的情况
+    if (
       vnode.componentInstance &&
       !vnode.componentInstance._isDestroyed &&
       vnode.data.keepAlive
@@ -4299,19 +4130,16 @@ var componentVNodeHooks = {
       var mountedNode = vnode; // work around flow
       componentVNodeHooks.prepatch(mountedNode, mountedNode);
     } else {
-      // 通过 createComponentInstanceForVnode 创建一个 Vue 的实例
-      // 调用 $mount 方法挂载子组件
       var child = vnode.componentInstance = createComponentInstanceForVnode(
         vnode,
         activeInstance,
         parentElm,
         refElm
       );
-      // child.$mount(undefined, false)
       child.$mount(hydrating ? vnode.elm : undefined, hydrating);
     }
   },
-  // 组件更新过程的 prepatch 钩子函数
+
   prepatch: function prepatch (oldVnode, vnode) {
     var options = vnode.componentOptions;
     var child = vnode.componentInstance = oldVnode.componentInstance;
@@ -4359,8 +4187,6 @@ var componentVNodeHooks = {
 
 var hooksToMerge = Object.keys(componentVNodeHooks);
 
-// 创建一个组件 VNode
-// vnode = createComponent(Ctor, data, context, children, tag);
 function createComponent (
   Ctor,
   data,
@@ -4371,16 +4197,12 @@ function createComponent (
   if (isUndef(Ctor)) {
     return
   }
-  // 实际上是 Vue
-  // Vue.options._base = Vue
-  var baseCtor = context.$options._base; // Vue
+
+  var baseCtor = context.$options._base;
 
   // plain options object: turn it into a constructor
-  // 将一个普通对象变成构造器
   if (isObject(Ctor)) {
-    // Vue.extend()，返回一个子构造器
-    // Vue.extend()  return Sub
-    Ctor = baseCtor.extend(Ctor);  // Sub 函数/对象，继承 Vue
+    Ctor = baseCtor.extend(Ctor);
   }
 
   // if at this stage it's not a constructor or an async component factory,
@@ -4393,7 +4215,6 @@ function createComponent (
   }
 
   // async component
-  // 异步组件
   var asyncFactory;
   if (isUndef(Ctor.cid)) {
     asyncFactory = Ctor;
@@ -4451,16 +4272,9 @@ function createComponent (
   }
 
   // install component management hooks onto the placeholder node
-  // 安装组件钩子函数
-  // data.hook = {
-  //  init()
-  //  ...
-  //}
-  // }
   installComponentHooks(data);
 
   // return a placeholder vnode
-  // 实例化 VNode
   var name = Ctor.options.name || tag;
   var vnode = new VNode(
     ("vue-component-" + (Ctor.cid) + (name ? ("-" + name) : '')),
@@ -4476,8 +4290,6 @@ function createComponent (
   return vnode
 }
 
-// 子组件的实例化
-// 创建一个 Vue 的实例
 function createComponentInstanceForVnode (
   vnode, // we know it's MountedComponentVNode but flow doesn't
   parent, // activeInstance in lifecycle state
@@ -4485,8 +4297,8 @@ function createComponentInstanceForVnode (
   refElm
 ) {
   var options = {
-    _isComponent: true,  // 是否是一个组件
-    parent: parent, // 当前激活的组件实例
+    _isComponent: true,
+    parent: parent,
     _parentVnode: vnode,
     _parentElm: parentElm || null,
     _refElm: refElm || null
@@ -4497,17 +4309,11 @@ function createComponentInstanceForVnode (
     options.render = inlineTemplate.render;
     options.staticRenderFns = inlineTemplate.staticRenderFns;
   }
-
-  // 子组件的实例化
-  // vnode.componentOptions.Ctor 是子组件的构造函数， 即 function Sub
-  // return new Sub(options)
   return new vnode.componentOptions.Ctor(options)
 }
 
-// 把 componentVNodeHooks 的钩子函数合并到 data.hook 中
 function installComponentHooks (data) {
   var hooks = data.hook || (data.hook = {});
-  // 遍历 注入钩子函数
   for (var i = 0; i < hooksToMerge.length; i++) {
     var key = hooksToMerge[i];
     hooks[key] = componentVNodeHooks[key];
@@ -4534,77 +4340,48 @@ var ALWAYS_NORMALIZE = 2;
 
 // wrapper function for providing a more flexible interface
 // without getting yelled at by flow
-
-// vm.$createElement = function (a, b, c, d) { return createElement(vm, a, b, c, d, true); };
-// 第一个参数是 vm
-// createElement 的2~5参数，是手写或者编译生成的 虚拟 dom 结构
-// render: function (createElement) {
-//   return createElement('div', {
-//     attrs: {
-//       id: 'app'
-//     }
-//   }, this.message)
-// },
-
-
-// 重要函数，用于生成 VNode
-// 根据 render (手写的，或者是编译生成的) 函数生成 VNode
 function createElement (
-  context,  // vm
-  tag,      // div
-  data,     // {attr:{id:'app'}}
-  children, // 'hello'
-  normalizationType, // undefined
-  alwaysNormalize // true
+  context,
+  tag,
+  data,
+  children,
+  normalizationType,
+  alwaysNormalize
 ) {
-  // 类似 参数重载，兼容少传参数的情况
-  // 这是标签没有属性 (data) 的情况
-  // 参数前置一位
   if (Array.isArray(data) || isPrimitive(data)) {
-    normalizationType = children; // hello
+    normalizationType = children;
     children = data;
     data = undefined;
   }
   if (isTrue(alwaysNormalize)) {
-    normalizationType = ALWAYS_NORMALIZE;  // 2
+    normalizationType = ALWAYS_NORMALIZE;
   }
-
-  // 上面是对参数的处理，处理好后，统一交给 _createElement
   return _createElement(context, tag, data, children, normalizationType)
 }
 
-// 创造 Vnode
-// 注意：执行 _createElement 时，是从里到外执行
-// 因为 children 作为此方法的参数，需要先执行
-// 层层嵌套的话，是从里面开始计算（执行）
 function _createElement (
-  context,  // vm
-  tag,      // div
-  data,     // {attr:{id:'app'}}
-  children, // 'hello'
-  normalizationType  // 2
+  context,
+  tag,
+  data,
+  children,
+  normalizationType
 ) {
-  // 属性对象不能是响应式的
   if (isDef(data) && isDef((data).__ob__)) {
     process.env.NODE_ENV !== 'production' && warn(
       "Avoid using observed data object as vnode data: " + (JSON.stringify(data)) + "\n" +
       'Always create fresh vnode data objects in each render!',
       context
     );
-    // 空 注释 Vnode
     return createEmptyVNode()
   }
   // object syntax in v-bind
   if (isDef(data) && isDef(data.is)) {
     tag = data.is;
   }
-
-  // 没有标签名，返回空的 VNode
   if (!tag) {
     // in case of component :is set to falsy value
     return createEmptyVNode()
   }
-
   // warn against non-primitive key
   if (process.env.NODE_ENV !== 'production' &&
     isDef(data) && isDef(data.key) && !isPrimitive(data.key)
@@ -4625,39 +4402,25 @@ function _createElement (
     data.scopedSlots = { default: children[0] };
     children.length = 0;
   }
-
-  // 手写 render 的函数，childred 是任意类型的，也可能是嵌套的
-  // 所以，需要通过 normalizeChildren 方法，将子元素全部转换为 VNode
   if (normalizationType === ALWAYS_NORMALIZE) {
     children = normalizeChildren(children);
   } else if (normalizationType === SIMPLE_NORMALIZE) {
-  // 编译生成的 render 函数，理论上已经是一个组件数组，所以只需要执行一次拍平
     children = simpleNormalizeChildren(children);
   }
-
-  //
-  // VNode 的创建
-  //
-
   var vnode, ns;
   if (typeof tag === 'string') {
     var Ctor;
     ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag);
-    // 如果是标准 html 标记
     if (config.isReservedTag(tag)) {
       // platform built-in elements
-      // 平台内置节点
       vnode = new VNode(
         config.parsePlatformTagName(tag), data, children,
         undefined, undefined, context
       );
-      // 通过 createComponent 创建一个组件类型的 VNode
     } else if (isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
-      // 创建一个组件 VNode
+      // component
       vnode = createComponent(Ctor, data, context, children, tag);
     } else {
-      // 不认识的标签
-      // 创建一个未知的标签的 VNode
       // unknown or unlisted namespaced elements
       // check at runtime because it may get assigned a namespace when its
       // parent normalizes children
@@ -4725,16 +4488,9 @@ function initRender (vm) {
   // so that we get proper render context inside it.
   // args order: tag, data, children, normalizationType, alwaysNormalize
   // internal version is used by render functions compiled from templates
-
-  // 两个方法都是调用 createElement 方法
-
-  // TODO:编译生成的 render 函数，所使用的方法
   vm._c = function (a, b, c, d) { return createElement(vm, a, b, c, d, false); };
   // normalization is always applied for the public version, used in
   // user-written render functions.
-  
-  // TODO:手写的 render 函数，所使用的方法
-  // 返回一个函数
   vm.$createElement = function (a, b, c, d) { return createElement(vm, a, b, c, d, true); };
 
   // $attrs & $listeners are exposed for easier HOC creation.
@@ -4763,16 +4519,10 @@ function renderMixin (Vue) {
     return nextTick(fn, this)
   };
 
-  // Vue 原型上的 _render 方法，将已有的 render 函数，转为 VNode
-  // _render 方法，用途是生成 VNode
   Vue.prototype._render = function () {
     var vm = this;
     var ref = vm.$options;
-    // 拿到 render 函数
-    // 通过 template 编译出来的，或者之前手写的 render 函数
     var render = ref.render;
-    
-    // 父 VNode
     var _parentVnode = ref._parentVnode;
 
     // reset _rendered flag on slots for duplicate slot check
@@ -4792,20 +4542,7 @@ function renderMixin (Vue) {
     vm.$vnode = _parentVnode;
     // render self
     var vnode;
-
-    // 调用 render 函数
-    // vm._renderProxy，生产环境下，就是 vm
-    // vm.$createElement，一个函数
     try {
-      // 调用 render 函数，并把 vm 作为this，vm.$createElement 作为参数传入
-      // 去研究 vm.$createElement 方法
-      // 使用中，会将 render 函数接收的参数传给 vm.$createElement，并执行 vm.$createElement
-
-      // render: function (h) {
-      //   return h('div', {
-      //     class: 'test'
-      //   }, [this.message, h('span', { class: 'span' }, 'span')])
-      // }
       vnode = render.call(vm._renderProxy, vm.$createElement);
     } catch (e) {
       handleError(e, vm, "render");
@@ -4838,11 +4575,8 @@ function renderMixin (Vue) {
       }
       vnode = createEmptyVNode();
     }
-
     // set parent
     vnode.parent = _parentVnode;
-
-    // 返回生成的 VNode
     return vnode
   };
 }
@@ -4851,11 +4585,9 @@ function renderMixin (Vue) {
 
 var uid$3 = 0;
 
-// initMixin给构造函数 Vue 添加 _init() 方法，在 new 调用 Vue 时执行
-// _init() 方法初始化一个 Vue 实例
 function initMixin (Vue) {
   Vue.prototype._init = function (options) {
-    var vm = this; // 此处 this，执行时是 Vue 实例
+    var vm = this;
     // a uid
     vm._uid = uid$3++;
 
@@ -4870,18 +4602,12 @@ function initMixin (Vue) {
     // a flag to avoid this being observed
     vm._isVue = true;
     // merge options
-
-    // 针对组件的 init
-    // 初始化一个组件，会走到这一步
     if (options && options._isComponent) {
-      // 优化内部组件实例化，因为动态选项合并非常缓慢，而且没有任何内部组件选项需要特殊处理
-      // optimize internal component instantiation 
+      // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
       initInternalComponent(vm, options);
     } else {
-      // 非组件的 init
-      // 合并 options，构造器（Vue）的 options 和 手写的 options
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         options || {},
@@ -4896,14 +4622,14 @@ function initMixin (Vue) {
     }
     // expose real self
     vm._self = vm;
-    initLifecycle(vm);  // 初始化 生命周期
-    initEvents(vm);     // 初始化 事件中心
-    initRender(vm);     // 初始化 render 函数   vm._c  和 vm.$createElement
-    callHook(vm, 'beforeCreate');  // 触发钩子函数
+    initLifecycle(vm);
+    initEvents(vm);
+    initRender(vm);
+    callHook(vm, 'beforeCreate');
     initInjections(vm); // resolve injections before data/props
-    initState(vm);      // 初始化 props methods data
-    initProvide(vm);   // resolve provide after data/props
-    callHook(vm, 'created');  // 触发钩子函数
+    initState(vm);
+    initProvide(vm); // resolve provide after data/props
+    callHook(vm, 'created');
 
     /* istanbul ignore if */
     if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
@@ -4912,7 +4638,6 @@ function initMixin (Vue) {
       measure(("vue " + (vm._name) + " init"), startTag, endTag);
     }
 
-    // 完成一些列初始化后 检测到有 el 属性，去挂载
     if (vm.$options.el) {
       vm.$mount(vm.$options.el);
     }
@@ -4997,23 +4722,15 @@ function dedupe (latest, extended, sealed) {
   }
 }
 
-// 一切一切的开始
 function Vue (options) {
   if (process.env.NODE_ENV !== 'production' &&
     !(this instanceof Vue)
   ) {
-    // 只能使用 new 关键词调用 Vue
-    // 使用 new 调用，this 指向新创建的对象
-    // 所以 this instanceof Vue
     warn('Vue is a constructor and should be called with the `new` keyword');
   }
-
-  // 通过 new 调用 Vue 时，会触发 this._init()
-  // 执行 Vue._init()
-  // 在 initMixin() 中定义了 _init() 方法
   this._init(options);
 }
-// 执行这些， 给 Vue 挂载一些方法、属性
+
 initMixin(Vue);
 stateMixin(Vue);
 eventsMixin(Vue);
@@ -5065,30 +4782,24 @@ function initExtend (Vue) {
   /**
    * Class inheritance
    */
-  // 构造一个 Vue 的子类
   Vue.extend = function (extendOptions) {
     extendOptions = extendOptions || {};
-    var Super = this; // Vue
+    var Super = this;
     var SuperId = Super.cid;
-    var cachedCtors = extendOptions._Ctor || (extendOptions._Ctor = {}); // 首次，空对象
-    if (cachedCtors[SuperId]) { // 若已经缓存过，直接返回
+    var cachedCtors = extendOptions._Ctor || (extendOptions._Ctor = {});
+    if (cachedCtors[SuperId]) {
       return cachedCtors[SuperId]
     }
 
-    var name = extendOptions.name || Super.options.name; // 组件名称
+    var name = extendOptions.name || Super.options.name;
     if (process.env.NODE_ENV !== 'production' && name) {
-      // 检验 组件名称是否合法
       validateComponentName(name);
     }
 
-    // 创建一个 Sub 函数，实例化时会执行
     var Sub = function VueComponent (options) {
       this._init(options);
     };
-
-    // 原型继承
-    Sub.prototype = Object.create(Super.prototype);  // Sub.prototype = Vue.prototype
-    // Vue.prototype
+    Sub.prototype = Object.create(Super.prototype);
     Sub.prototype.constructor = Sub;
     Sub.cid = cid++;
     Sub.options = mergeOptions(
@@ -5100,7 +4811,6 @@ function initExtend (Vue) {
     // For props and computed properties, we define the proxy getters on
     // the Vue instances at extension time, on the extended prototype. This
     // avoids Object.defineProperty calls for each instance created.
-    // 组件的 prop 代理
     if (Sub.options.props) {
       initProps$1(Sub);
     }
@@ -5130,7 +4840,7 @@ function initExtend (Vue) {
     Sub.extendOptions = extendOptions;
     Sub.sealedOptions = extend({}, Sub.options);
 
-    // cache constructor 缓存
+    // cache constructor
     cachedCtors[SuperId] = Sub;
     return Sub
   };
@@ -5769,75 +5479,18 @@ function createKeyToOldIdx (children, beginIdx, endIdx) {
   return map
 }
 
-// 通过此函数 生成 patch 函数，用于生成真正的DOM
-
-// nodeOps 封装了一系列 DOM 操作的方法
-// var nodeOps = Object.freeze({
-// 	createElement: createElement$1,
-// 	createElementNS: createElementNS,
-// 	createTextNode: createTextNode,
-// 	createComment: createComment,
-// 	insertBefore: insertBefore,
-// 	removeChild: removeChild,
-// 	appendChild: appendChild,
-// 	parentNode: parentNode,
-// 	nextSibling: nextSibling,
-// 	tagName: tagName,
-// 	setTextContent: setTextContent,
-// 	setStyleScope: setStyleScope
-// });
-
-
-// modules 定义了一些模块的钩子函数的实现
-
-// var platformModules = [
-//   attrs,
-//   klass,
-//   events,
-//   domProps,
-//   style,
-//   transition
-// ].concat([
-//   ref,
-//   directives
-// ])
-// var patch = createPatchFunction({ nodeOps: nodeOps, modules: modules });
 function createPatchFunction (backend) {
   var i, j;
   var cbs = {};
 
-  // 平台属性、钩子函数
   var modules = backend.modules;
-  
-  // dom操作方法
   var nodeOps = backend.nodeOps;
 
-  // var hooks = ['create', 'activate', 'update', 'remove', 'destroy'];
-
-  // var modules = [
-  //   attrs,
-  //   klass,
-  //   events,
-  //   domProps,
-  //   style,
-  //   transition
-  // ]
-
-  // cbs = {
-  //   create: [
-
-  //   ],
-  //   activate: [],
-  //   update: [],
-  //   remove: [],
-  //   destroy: []
-  // }
   for (i = 0; i < hooks.length; ++i) {
     cbs[hooks[i]] = [];
     for (j = 0; j < modules.length; ++j) {
       if (isDef(modules[j][hooks[i]])) {
         cbs[hooks[i]].push(modules[j][hooks[i]]);
-        // cbs['create'].push(attrs['hookscreate');
       }
     }
   }
@@ -5882,8 +5535,6 @@ function createPatchFunction (backend) {
 
   var creatingElmInVPre = 0;
 
-  // 通过虚拟节点创建真实的 DOM 并插入到它的父节点中
-  // createElm(vnode, insertedVnodeQueue, parentElm, refElm);
   function createElm (
     vnode,
     insertedVnodeQueue,
@@ -5903,9 +5554,6 @@ function createPatchFunction (backend) {
     }
 
     vnode.isRootInsert = !nested; // for transition enter check
-
-    // createComponent 方法目的是尝试创建子组件
-    // 判断 createComponent 的返回值
     if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
       return
     }
@@ -5913,8 +5561,6 @@ function createPatchFunction (backend) {
     var data = vnode.data;
     var children = vnode.children;
     var tag = vnode.tag;
-
-    // 判断 tag 的情况
     if (isDef(tag)) {
       if (process.env.NODE_ENV !== 'production') {
         if (data && data.pre) {
@@ -5930,8 +5576,6 @@ function createPatchFunction (backend) {
         }
       }
 
-      // 调用平台 DOM 的操作去创建一个占位符元素。
-      // nodeOps.createElement：vnode.elm = document.createElement(tagName);
       vnode.elm = vnode.ns
         ? nodeOps.createElementNS(vnode.ns, tag)
         : nodeOps.createElement(tag, vnode);
@@ -5939,13 +5583,10 @@ function createPatchFunction (backend) {
 
       /* istanbul ignore if */
       {
-        // 调用 createChildren 方法去创建子元素
         createChildren(vnode, children, insertedVnodeQueue);
         if (isDef(data)) {
-          // 调用 invokeCreateHooks 方法执行所有的 create 的钩子并把 vnode push 到 insertedVnodeQueue
           invokeCreateHooks(vnode, insertedVnodeQueue);
         }
-        // 最后调用 insert 方法把 DOM 插入到父节点中
         insert(parentElm, vnode.elm, refElm);
       }
 
@@ -5961,22 +5602,11 @@ function createPatchFunction (backend) {
     }
   }
 
-  // createComponent(vnode, insertedVnodeQueue, parentElm, refElm)
   function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
-    // vnode.data = {
-    //   on: '',
-    //   hook: {
-    //     init,
-    //     prepatch,
-    //     insert,
-    //     destroy
-    //   }
-    // }
     var i = vnode.data;
     if (isDef(i)) {
       var isReactivated = isDef(vnode.componentInstance) && i.keepAlive;
       if (isDef(i = i.hook) && isDef(i = i.init)) {
-        // init(vnode, false /* hydrating */, parentElm, refElm)
         i(vnode, false /* hydrating */, parentElm, refElm);
       }
       // after calling the init hook, if the vnode is a child component
@@ -6033,7 +5663,6 @@ function createPatchFunction (backend) {
     insert(parentElm, vnode.elm, refElm);
   }
 
-  // 调用 insert 方法把 DOM 插入到父节点中
   function insert (parent, elm, ref$$1) {
     if (isDef(parent)) {
       if (isDef(ref$$1)) {
@@ -6046,15 +5675,11 @@ function createPatchFunction (backend) {
     }
   }
 
-  // 调用 createChildren 方法去创建子元素
   function createChildren (vnode, children, insertedVnodeQueue) {
     if (Array.isArray(children)) {
       if (process.env.NODE_ENV !== 'production') {
         checkDuplicateKeys(children);
       }
-
-      // 遍历子虚拟节点，递归调用 createElm
-      // vnode.elm 是父容器的 DOM 节点占位符
       for (var i = 0; i < children.length; ++i) {
         createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i);
       }
@@ -6298,7 +5923,6 @@ function createPatchFunction (backend) {
 
     var i;
     var data = vnode.data;
-    // 遇到组件 vnode 的时候，会执行组件更新过程的 prepatch 钩子函数
     if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
       i(oldVnode, vnode);
     }
@@ -6454,24 +6078,13 @@ function createPatchFunction (backend) {
     }
   }
 
-  // 这是 createPatchFunction 最终返回的函数，即需要的 patch 函数，
-  // 并赋值给 Vue.prototype.__patch__, 即 vm.__patch__
-
-  // 接收的前四个参数：
-  // 旧的 VNode 节点
-  // 执行 _render 后返回的新的 VNode 节点
-  // 是否服务端渲染
-  // transition-group 使用的参数
   return function patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) { invokeDestroyHook(oldVnode); }
       return
     }
 
-    // 是否初次渲染
     var isInitialPatch = false;
-
-    // 待插入的 vnode 队列
     var insertedVnodeQueue = [];
 
     if (isUndef(oldVnode)) {
@@ -6479,13 +6092,11 @@ function createPatchFunction (backend) {
       isInitialPatch = true;
       createElm(vnode, insertedVnodeQueue, parentElm, refElm);
     } else {
-      // 首次渲染，传进来的是真实 DOM 结构，isRealElement 为 true
       var isRealElement = isDef(oldVnode.nodeType);
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
         patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly);
       } else {
-        // 渲染一个真实节点
         if (isRealElement) {
           // mounting to a real element
           // check if this is server-rendered content and if we can perform
@@ -6494,7 +6105,6 @@ function createPatchFunction (backend) {
             oldVnode.removeAttribute(SSR_ATTR);
             hydrating = true;
           }
-          // 服务端渲染
           if (isTrue(hydrating)) {
             if (hydrate(oldVnode, vnode, insertedVnodeQueue)) {
               invokeInsertHook(vnode, insertedVnodeQueue, true);
@@ -6511,25 +6121,14 @@ function createPatchFunction (backend) {
           }
           // either not server-rendered, or hydration failed.
           // create an empty node and replace it
-
-          // emptyNodeAt 方法把传进来的真实 DOM 结构 转换成 VNode 对象
-          // emptyNodeAt 方法处理后生成的 VNode，其 elm 属性是真实 DOM
           oldVnode = emptyNodeAt(oldVnode);
         }
 
         // replacing existing element
-        // 真实 DOM 结构
         var oldElm = oldVnode.elm;
-
-        // 获取原真实 DOM 的父元素，（body）
         var parentElm$1 = nodeOps.parentNode(oldElm);
 
         // create new node
-        // 通过虚拟节点创建真实的 DOM 并插入到它的父节点中
-        // 参数说明：
-        // vnode: _render 生成的 VNode
-        // insertedVnodeQueue： 带插入 vnode 队列
-        // parentElm$1：原真实 DOM 的父元素
         createElm(
           vnode,
           insertedVnodeQueue,
@@ -8345,15 +7944,6 @@ var platformModules = [
 // built-in modules have been applied.
 var modules = platformModules.concat(baseModules);
 
-// patch(vm.$el, vnode, hydrating, false,vm.$options._parentElm,vm.$options._refElm);
-
-
-
-// patch 函数接收 VNode, 用于把 VNode 渲染成真正的 DOM
-// 定义 patch 函数
-// patch 是一个函数
-// patch 函数是执行 createPatchFunction 后的返回结果（一个函数）
-// 去看 createPatchFunction 方法
 var patch = createPatchFunction({ nodeOps: nodeOps, modules: modules });
 
 /**
@@ -8941,24 +8531,14 @@ extend(Vue.options.directives, platformDirectives);
 extend(Vue.options.components, platformComponents);
 
 // install platform patch function
-// 这是 web 平台的 patch 方法
 Vue.prototype.__patch__ = inBrowser ? patch : noop;
 
 // public mount method
-
-// 渲染函数
-
-// mount(el,hydrating) 函数
-// 最终去做挂载的 mount 方法
 Vue.prototype.$mount = function (
   el,
   hydrating
 ) {
-  // 判断宿主环境
-  // 兼容手写 render 情况，重新获取 el DOM
   el = el && inBrowser ? query(el) : undefined;
-
-  // 继续函数调用
   return mountComponent(this, el, hydrating)
 };
 
@@ -9515,8 +9095,6 @@ function createASTElement (
 /**
  * Convert HTML string to AST.
  */
-// 模板编译成 抽象语法树
-// options 和平台相关的一些配置
 function parse (
   template,
   options
@@ -11294,23 +10872,14 @@ var idToTemplate = cached(function (id) {
   return el && el.innerHTML
 });
 
-// 缓存下原型上的 $mount(放在了全局)
 var mount = Vue.prototype.$mount;
-
-// 重新定义 $mount，因为不带 compile 版本没有 $mount
-// 不带 compiler 的版本，这部分工作由 webpack 中的 vue-loader 做了
-// 这是带 compiler 版本的
-
-// vm.$mount(vm.$options.el);
 Vue.prototype.$mount = function (
   el,
   hydrating
 ) {
-  // 将 el 转换成 dom 结构
   el = el && query(el);
-  
+
   /* istanbul ignore if */
-  // 不允许挂载在 html 或者 body 上,因为最终会被替换掉
   if (el === document.body || el === document.documentElement) {
     process.env.NODE_ENV !== 'production' && warn(
       "Do not mount Vue to <html> or <body> - mount to normal elements instead."
@@ -11320,19 +10889,11 @@ Vue.prototype.$mount = function (
 
   var options = this.$options;
   // resolve template/el and convert to render function
-
-  // 如果没有手写 render 函数，将 template 转成 render 函数
-  // Vue 2.0 版本后，mount 方法最终只认 render 函数（不论是手写的，还是编译出来的）
-
-  // 处理没有手写 render 函数的情况
   if (!options.render) {
-    // 先判断是否有 template
     var template = options.template;
-
-    // 如果存在 template 模板
     if (template) {
-      if (typeof template === 'string') { // template 是一个字符串
-        if (template.charAt(0) === '#') { // #app
+      if (typeof template === 'string') {
+        if (template.charAt(0) === '#') {
           template = idToTemplate(template);
           /* istanbul ignore if */
           if (process.env.NODE_ENV !== 'production' && !template) {
@@ -11342,7 +10903,7 @@ Vue.prototype.$mount = function (
             );
           }
         }
-      } else if (template.nodeType) { // template 是一个 DOM 节点
+      } else if (template.nodeType) {
         template = template.innerHTML;
       } else {
         if (process.env.NODE_ENV !== 'production') {
@@ -11351,32 +10912,22 @@ Vue.prototype.$mount = function (
         return this
       }
     } else if (el) {
-
-    // 没有 template,走到这里,获取 el 的包裹 html 结构
       template = getOuterHTML(el);
     }
-
-    // 通过 template 或者 el,得到 template 后
     if (template) {
-      // 没有render,根组件，走到这里
       /* istanbul ignore if */
       if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
         mark('compile');
       }
 
-      // 开始编译，template 编译出 render 函数
       var ref = compileToFunctions(template, {
         shouldDecodeNewlines: shouldDecodeNewlines,
         shouldDecodeNewlinesForHref: shouldDecodeNewlinesForHref,
         delimiters: options.delimiters,
         comments: options.comments
       }, this);
-
-      // 编译过后，返回 ref 对象，这个对象上已经有了 template 转换而来的 render 函数 和 staticRenderFns 方法
       var render = ref.render;
       var staticRenderFns = ref.staticRenderFns;
-
-      // 将获得的 render 和 staticRenderFns 函数，挂在 options 上
       options.render = render;
       options.staticRenderFns = staticRenderFns;
 
@@ -11387,12 +10938,7 @@ Vue.prototype.$mount = function (
       }
     }
   }
-
-  // 如果有手写 render 函数，直接调用 mount 方法
-  // 将 template 编译成 render 函数后，也调用此处 mount 方法
-
-  // 另：此处的 mount 方法是缓存在全局的 mount 方法
-  return mount.call(this, el, hydrating) // vm，DOM 结构
+  return mount.call(this, el, hydrating)
 };
 
 /**
@@ -11400,12 +10946,10 @@ Vue.prototype.$mount = function (
  * of SVG elements in IE as well.
  */
 function getOuterHTML (el) {
-  // outerHTML 属性获取描述元素（包括其后代）的序列化HTML片段
   if (el.outerHTML) {
     return el.outerHTML
   } else {
     var container = document.createElement('div');
-    // cloneNode() 方法返回调用该方法的节点的一个副本.
     container.appendChild(el.cloneNode(true));
     return container.innerHTML
   }
@@ -11413,4 +10957,4 @@ function getOuterHTML (el) {
 
 Vue.compile = compileToFunctions;
 
-export default Vue;
+module.exports = Vue;
