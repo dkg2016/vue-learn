@@ -2731,18 +2731,19 @@ function lifecycleMixin (Vue) {
       callHook(vm, 'beforeUpdate');
     }
 
-    // 拿到当前的 el
-    // 是一个真实 DOM 结构，之前 $mount 挂载的
+    // 拿到当前的 el DOM 结构
+    // main.js 中的 el，之前 $mount 挂载的
     var prevEl = vm.$el;
 
     // 拿到旧的 vnode
+    // 因为如果是更新 DOM，就会有之前的 vnode
     var prevVnode = vm._vnode;
 
     var prevActiveInstance = activeInstance;
     activeInstance = vm;
 
     // 更新旧的 vnode
-    // 本次生成的 vnode，成为了新的 vnode
+    // 本次生成的 vnode，成为了新的 _vnode
     vm._vnode = vnode;
 
     // Vue.prototype.__patch__ is injected in entry points
@@ -2753,8 +2754,8 @@ function lifecycleMixin (Vue) {
       // 首次渲染
       // initial render
 
-      // 首次渲染的时候，没有旧的 VNode，把挂载的 el 传递给 patch 函数
-      // el 是真实的 DOM 结构
+      // 首次渲染的时候，没有旧的 VNode，把挂载的 $el 传递给 patch 函数
+      // $el 是真实的 DOM 结构
       vm.$el = vm.__patch__(
         vm.$el, vnode, hydrating, false /* removeOnly */,
         vm.$options._parentElm,
@@ -5885,9 +5886,9 @@ function createPatchFunction (backend) {
   // 通过虚拟节点创建真实的 DOM 并插入到它的父节点中
   // createElm(vnode, insertedVnodeQueue, parentElm, refElm);
   function createElm (
-    vnode,
+    vnode, // 这是"原料"
     insertedVnodeQueue,
-    parentElm,
+    parentElm, // "原料"的父级真实 DOM
     refElm,
     nested,
     ownerArray,
@@ -5910,9 +5911,9 @@ function createPatchFunction (backend) {
       return
     }
 
-    var data = vnode.data;
-    var children = vnode.children;
-    var tag = vnode.tag;
+    var data = vnode.data; // id，类名等属性
+    var children = vnode.children; // 子元素
+    var tag = vnode.tag; // 标签
 
     // 判断 tag 的情况
     if (isDef(tag)) {
@@ -5930,7 +5931,10 @@ function createPatchFunction (backend) {
         }
       }
 
-      // 调用平台 DOM 的操作去创建一个占位符元素。
+      // 调用平台 DOM 的操作去创建一个占位符元素
+      // 例如，tag 是一个 div，则在此处将创建一个真实 div DOM
+      // 只不过此 DOM，目前没有子元素，
+      // 并将此真实 DOM 赋值给 VNode 的 elm 属性
       // nodeOps.createElement：vnode.elm = document.createElement(tagName);
       vnode.elm = vnode.ns
         ? nodeOps.createElementNS(vnode.ns, tag)
@@ -5938,24 +5942,35 @@ function createPatchFunction (backend) {
       setScope(vnode);
 
       /* istanbul ignore if */
+
+      // 先去生成子节点
       {
         // 调用 createChildren 方法去创建子元素
         createChildren(vnode, children, insertedVnodeQueue);
+        // ↑↑↑ 经过 createChildren 方法后（循环结束，所有循环结束），VNode 还是 VNode，但是 VNode 的 elm 属性，已经不再是一个“空”的 DOM 树，而是一棵挂载满了子 DOM 结构的真实 DOM 树
+        // 可以执行最后的挂载了
+
         if (isDef(data)) {
           // 调用 invokeCreateHooks 方法执行所有的 create 的钩子并把 vnode push 到 insertedVnodeQueue
           invokeCreateHooks(vnode, insertedVnodeQueue);
         }
         // 最后调用 insert 方法把 DOM 插入到父节点中
+        // 最外层的话，就是把 完整的真实 DOM 树 替换 el DOM，插入到 body
         insert(parentElm, vnode.elm, refElm);
       }
 
       if (process.env.NODE_ENV !== 'production' && data && data.pre) {
         creatingElmInVPre--;
       }
+      // 没有 tag，是一个组件
     } else if (isTrue(vnode.isComment)) {
       vnode.elm = nodeOps.createComment(vnode.text);
       insert(parentElm, vnode.elm, refElm);
     } else {
+      // 没有 tag，也不是一个组件
+      // 那就生成一个真实的文本节点，赋值给本身的 elm 属性
+      // 并通过 insert 方法，
+      // 将生成的真实 DOM append 到父级真实 DOM 上
       vnode.elm = nodeOps.createTextNode(vnode.text);
       insert(parentElm, vnode.elm, refElm);
     }
@@ -6033,7 +6048,7 @@ function createPatchFunction (backend) {
     insert(parentElm, vnode.elm, refElm);
   }
 
-  // 调用 insert 方法把 DOM 插入到父节点中
+  // 调用 insert 方法把子节点的真实 DOM 插入到父节点的真实 DOM
   function insert (parent, elm, ref$$1) {
     if (isDef(parent)) {
       if (isDef(ref$$1)) {
@@ -6046,6 +6061,7 @@ function createPatchFunction (backend) {
     }
   }
 
+  // createChildren 方法，用于生成 VNode 的子节点
   // 调用 createChildren 方法去创建子元素
   function createChildren (vnode, children, insertedVnodeQueue) {
     if (Array.isArray(children)) {
@@ -6053,11 +6069,16 @@ function createPatchFunction (backend) {
         checkDuplicateKeys(children);
       }
 
+      // VNode 的 children 也是 VNode，所以，需要先把子 VNode转变为真实的 DOM
+      // 这里就要对 children 进行一次遍历，变成真实 DOM
+      // 并且每次都把 vnode.elm 作为父节点参数传入，保证生成的子真实 DOM append 到父级 DOM 上
       // 遍历子虚拟节点，递归调用 createElm
       // vnode.elm 是父容器的 DOM 节点占位符
       for (var i = 0; i < children.length; ++i) {
         createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i);
       }
+      // ↑↑↑ 经过上面的循环遍历之后，父级真实 DOM 上已经挂载了所有子节点的真实 DOM 结构
+      // 即此时 vnode 的 elm 是一个真实 DOM 树，需要插入到 body 中了
     } else if (isPrimitive(vnode.text)) {
       nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text)));
     }
@@ -6479,7 +6500,8 @@ function createPatchFunction (backend) {
       isInitialPatch = true;
       createElm(vnode, insertedVnodeQueue, parentElm, refElm);
     } else {
-      // 首次渲染，传进来的是真实 DOM 结构，isRealElement 为 true
+      // 首次渲染，传进来的 oldVnode 是真实 DOM 结构
+      // 故 isRealElement 为 true
       var isRealElement = isDef(oldVnode.nodeType);
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
@@ -6513,7 +6535,7 @@ function createPatchFunction (backend) {
           // create an empty node and replace it
 
           // emptyNodeAt 方法把传进来的真实 DOM 结构 转换成 VNode 对象
-          // emptyNodeAt 方法处理后生成的 VNode，其 elm 属性是真实 DOM
+          // 且其 elm 属性是原始的真实 DOM
           oldVnode = emptyNodeAt(oldVnode);
         }
 
@@ -6529,7 +6551,7 @@ function createPatchFunction (backend) {
         // 参数说明：
         // vnode: _render 生成的 VNode
         // insertedVnodeQueue： 带插入 vnode 队列
-        // parentElm$1：原真实 DOM 的父元素
+        // parentElm$1：原真实 DOM 的父元素（VNode 要挂在此处）
         createElm(
           vnode,
           insertedVnodeQueue,
