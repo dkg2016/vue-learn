@@ -4619,7 +4619,7 @@ var ALWAYS_NORMALIZE = 2;
 // 根据 render (手写的，或者是编译生成的) 函数生成 VNode
 function createElement (
   context,  // vm
-  tag,      // div
+  tag,      // div 组件的话，是一个 组件对象 app
   data,     // {attr:{id:'app'}}
   children, // 'hello'
   normalizationType, // undefined
@@ -4649,7 +4649,7 @@ function createElement (
 // 如果是组件, tag 是组件对象,data, children 是 undefined
 function _createElement (
   context,  // vm
-  tag,      // div
+  tag,      // div || obj
   data,     // {attr:{id:'app'}}
   children, // 'hello'
   normalizationType  // 2
@@ -4813,7 +4813,7 @@ function initRender (vm) {
   // vm.$createElement('div', {class: 'test'},'hello')
 
   // 如果是组件, 即 h(App)
-  // 那么就是 vm.$createElement(object: App)
+  // 那么就是 vm.$createElement(object: App)，a 是一个组件对象，bcd 都是 undefined
   vm.$createElement = function (a, b, c, d) { return createElement(vm, a, b, c, d, true); };
 
   // $attrs & $listeners are exposed for easier HOC creation.
