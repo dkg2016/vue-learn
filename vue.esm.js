@@ -721,12 +721,13 @@ function popTarget () {
 /*  */
 
 // 虚拟 DOM,构造函数
+// 不论是正常的，还是组件，最终都是通过 _render 函数，变成 VNode
 var VNode = function VNode (
-  tag,
+  tag, // 可能是一个标准 html ，也可能是一个组件名
   data,
-  children,
+  children, // 组件没有子元素
   text,
-  elm,
+  elm, // 真实 DOM
   context,
   componentOptions,
   asyncFactory
@@ -1489,7 +1490,10 @@ function assertObjectType (name, value, vm) {
  * Merge two option objects into a new one. 
  * Core utility used in both instantiation and inheritance.
  */
+
+// 何必两个对象到一起
 // 合并两个 options 到一起
+// 针对 options 中的不同 key，合并方法也不一样
 // 合并成一个新对象,并返回
 function mergeOptions (
   parent,
@@ -1506,7 +1510,11 @@ function mergeOptions (
 
   // 对 props 的规范化
   normalizeProps(child, vm);
+
+  // 对 inject 的规范化
   normalizeInject(child, vm);
+
+  // 对 Directives 的规范化
   normalizeDirectives(child);
   
   // 把 extends 合并到 parent 上
@@ -1526,14 +1534,25 @@ function mergeOptions (
   var options = {};
 
   var key;
+  // 先从 parent 中的属性入手，合并到 options 上
   for (key in parent) {
     mergeField(key);
   }
   for (key in child) {
+    // 把父当中没有的，再合并到 options 上
     if (!hasOwn(parent, key)) {
       mergeField(key);
     }
   }
+
+  // 以上，parent 和 child 的属性就都合并到 options 上了
+
+  // mergeField 方法，指引了不同属性的合并方法
+  // strats 对象中，已经定义好了不同属性的合并方法
+  // 这里就可以通过 key 取到对应的方法
+  // 例如，如果 key 是 ‘created’，就会调用 strats[‘created’]
+  // 就会调用 mergeHook 方法，（这是合并生命周期的方法）
+  // 即 options[created] = mergeHook(parent[created], child[created],vm, key)
   function mergeField (key) {
     var strat = strats[key] || defaultStrat;
     options[key] = strat(parent[key], child[key], vm, key);
@@ -2894,7 +2913,7 @@ function mountComponent (
   // 触发 钩子函数
   callHook(vm, 'beforeMount');
 
-  // 声明一个变量（将来是函数）
+  // 声明一个变量（函数）
   var updateComponent;
   /* istanbul ignore if */
 
@@ -4921,11 +4940,11 @@ function renderMixin (Vue) {
 
 var uid$3 = 0;
 
-// initMixin给构造函数 Vue 添加 _init() 方法，在 new 调用 Vue 时执行
+// initMixin 给构造函数 Vue 添加了 _init() 方法，在 new 调用 Vue 时执行
 // _init() 方法初始化一个 Vue 实例
 function initMixin (Vue) {
   Vue.prototype._init = function (options) {
-    var vm = this; // 此处 this，执行时是 Vue 实例
+    var vm = this; // 此处 this，执行时是新创建的 Vue 实例 vm
     // a uid
     vm._uid = uid$3++;
 
@@ -4941,8 +4960,8 @@ function initMixin (Vue) {
     vm._isVue = true;
     // merge options
 
-    // 这是 new Sub() 构造函数调用,实例化一个 Sub 的实例
     // 针对组件的 init ~~~~~~~~~~~~~~~~~~~~~~
+    // 这是 new Sub() 构造函数调用,实例化一个 Sub 的实例
     // 初始化一个组件的时候，会走到这一步
     if (options && options._isComponent) {
       // 优化内部组件实例化，因为动态选项合并非常缓慢，而且没有任何内部组件选项需要特殊处理
@@ -4951,17 +4970,15 @@ function initMixin (Vue) {
       // internal component options needs special treatment.
       
       // 组件的 mergeOptions
-      debugger
       initInternalComponent(vm, options);
     } else {
+      // 一般调用
       // 执行外部的 new Vue
       // 非组件的 init
-      // 合并 options，构造器（Vue）的 options 和 手写的 options
+      // 合并 options，构造器（Vue）的 options 和 手写的 options 合并成一个对象
       // 把一个函数的返回值和 options 合并
-      // resolveConstructorOptions => vm.constructor.options
-      // 即 Vue.options
+      // resolveConstructorOptions => vm.constructor.options，即 Vue.options
       // initGlobalAPI(Vue) 的时候,定义了 Vue.options
-      debugger
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         options || {},
@@ -5092,7 +5109,7 @@ function dedupe (latest, extended, sealed) {
   }
 }
 
-// 一切一切的开始
+// 故事从这里开始
 function Vue (options) {
   if (process.env.NODE_ENV !== 'production' &&
     !(this instanceof Vue)
@@ -5108,7 +5125,7 @@ function Vue (options) {
   // 在 initMixin() 中定义了 _init() 方法
   this._init(options);
 }
-// 执行这些， 给 Vue 挂载一些方法、属性
+// 执行这些， 给 构造函数 Vue 挂载了一些方法、属性
 initMixin(Vue);
 stateMixin(Vue);
 eventsMixin(Vue);
@@ -11474,7 +11491,7 @@ Vue.prototype.$mount = function (
     return this
   }
 
-  var options = this.$options;
+  var options = this.$options;  // vm.$options
   // resolve template/el and convert to render function
 
   // 如果没有手写 render 函数，将 template 转成 render 函数
@@ -11545,7 +11562,7 @@ Vue.prototype.$mount = function (
   }
 
   // 如果有手写 render 函数，直接调用 mount 方法
-  // 将 template 编译成 render 函数后，也调用此处 mount 方法
+  // 或者没有手写 render 函数，那么将 template 编译成 render 函数后，再此处 mount 方法
 
   // 另：此处的 mount 方法是缓存在全局的 mount 方法
   // mount 方法实现渲染
