@@ -2759,6 +2759,7 @@ function lifecycleMixin (Vue) {
 
     // 钩子函数
     // 已经渲染过的情况，触发 更新的钩子函数
+    // 组件已经 mounted 之后，才会去调用这个钩子函数
     if (vm._isMounted) {
       callHook(vm, 'beforeUpdate');
     }
@@ -2832,7 +2833,10 @@ function lifecycleMixin (Vue) {
     if (vm._isBeingDestroyed) {
       return
     }
+
+    // $destroy 函数,先执行钩子函数 beforeDestroy
     callHook(vm, 'beforeDestroy');
+
     vm._isBeingDestroyed = true;
     // remove self from parent
     var parent = vm.$parent;
@@ -2857,6 +2861,8 @@ function lifecycleMixin (Vue) {
     // invoke destroy hooks on current rendered tree
     vm.__patch__(vm._vnode, null);
     // fire destroyed hook
+
+    // $destroy 函数,后执行钩子函数 destroyed
     callHook(vm, 'destroyed');
     // turn off all instance listeners.
     vm.$off();
@@ -2965,6 +2971,7 @@ function mountComponent (
   // mounted is called for render-created child components in its inserted hook
 
   // vm.$vnode 表示 Vue 实例的父虚拟 Node
+  // vm.$vnode 为 null, 表明不是组件的初始化过程,而是通过外部 new Vue 初始化的过程
   if (vm.$vnode == null) {
     vm._isMounted = true;
     // 渲染完毕，触发钩子函数
@@ -3082,13 +3089,19 @@ function deactivateChildComponent (vm, direct) {
   }
 }
 
+// 所有生命周期的执行,都要通过 callHook 方法
 function callHook (vm, hook) {
   // #7573 disable dep collection when invoking lifecycle hooks
   pushTarget();
+
+  // 根据传入的 hook, 拿到 vm.$options[hook]
+  // 拿到对应的回调函数数组
   var handlers = vm.$options[hook];
   if (handlers) {
     for (var i = 0, j = handlers.length; i < j; i++) {
       try {
+        // 执行声明周期的每个回调
+        // vm 作为上下文
         handlers[i].call(vm);
       } catch (e) {
         handleError(e, vm, (hook + " hook"));
@@ -4373,6 +4386,8 @@ var componentVNodeHooks = {
     var componentInstance = vnode.componentInstance;
     if (!componentInstance._isMounted) {
       componentInstance._isMounted = true;
+      
+      // 执行组件的 mounted 钩子函数
       callHook(componentInstance, 'mounted');
     }
     if (vnode.data.keepAlive) {
@@ -4404,7 +4419,6 @@ var componentVNodeHooks = {
 var hooksToMerge = Object.keys(componentVNodeHooks);
 
 // 把组件对象生成组件对应的 VNode
-// 组件对象是 tag
 // vnode = createComponent(tag, data, context, children);
 function createComponent (
   Ctor, // 组件对象
@@ -4429,7 +4443,7 @@ function createComponent (
     // Sub 函数/对象，继承 Vue
     // 并且 Sub 的 options 已经经过了合并扩展
   }
-  // ↑↑↑↑ Ctor 原来是一个纯对象
+  // 👆👆👆 Ctor 原来是一个纯对象
   // 经过 extend 之后，变成一个构造函数
   // 用来实例化一个组件
 
@@ -4740,6 +4754,7 @@ function _createElement (
       );
     }
   } else {
+
     // tag 是一个组件对象,所以直接去创建一个组件 VNode
     // direct component options / constructor
     vnode = createComponent(tag, data, context, children);
@@ -5003,11 +5018,17 @@ function initMixin (Vue) {
     initLifecycle(vm);  // 初始化 生命周期
     initEvents(vm);     // 初始化 事件中心
     initRender(vm);     // 初始化 render 函数   vm._c  和 vm.$createElement
+
+    // beforeCreate 钩子函数的调用是在 initState 前,故拿不到 data props,methods 等属性
     callHook(vm, 'beforeCreate');  // 触发钩子函数
     initInjections(vm); // resolve injections before data/props
     initState(vm);      // 初始化 props methods data
     initProvide(vm);   // resolve provide after data/props
+
+    // created 钩子函数的调用是在 initState 前,故拿不到 data props,methods 等属性
     callHook(vm, 'created');  // 触发钩子函数
+
+    // 👆 beforeCreate 和 created 执行时,并没有渲染DOM,所以也并能访问 DOM
 
     /* istanbul ignore if */
     if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
