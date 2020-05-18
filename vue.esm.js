@@ -1578,9 +1578,15 @@ function resolveAsset (
   }
   var assets = options[type];
   // check local registration variations first
+  
+  // 先用 id 拿
   if (hasOwn(assets, id)) { return assets[id] }
+
+  // 变成驼峰
   var camelizedId = camelize(id);
   if (hasOwn(assets, camelizedId)) { return assets[camelizedId] }
+
+  // 在驼峰的基础上把首字母再变成大写的形式再拿
   var PascalCaseId = capitalize(camelizedId);
   if (hasOwn(assets, PascalCaseId)) { return assets[PascalCaseId] }
   // fallback to prototype chain
@@ -4754,7 +4760,7 @@ function _createElement (
       );
     }
   } else {
-
+    debugger
     // tag 是一个组件对象,所以直接去创建一个组件 VNode
     // direct component options / constructor
     vnode = createComponent(tag, data, context, children);
@@ -5310,7 +5316,15 @@ function initAssetRegisters (Vue) {
   /**
    * Create asset registration methods.
    */
+
+  // ASSET_TYPES = [
+  //   'component',
+  //   'directive',
+  //   'filter'
+  // ];
+
   ASSET_TYPES.forEach(function (type) {
+    // 所以 Vue.component 是一个函数
     Vue[type] = function (
       id,
       definition
@@ -5322,6 +5336,9 @@ function initAssetRegisters (Vue) {
         if (process.env.NODE_ENV !== 'production' && type === 'component') {
           validateComponentName(id);
         }
+        // 如果 type 是 'component'
+        // 且 definition 是一个对象
+        // 把这个对象转换成一个继承于 Vue 的构造函数
         if (type === 'component' && isPlainObject(definition)) {
           definition.name = definition.name || id;
           definition = this.options._base.extend(definition);
@@ -5329,7 +5346,10 @@ function initAssetRegisters (Vue) {
         if (type === 'directive' && typeof definition === 'function') {
           definition = { bind: definition, update: definition };
         }
+
+        // 它挂载到 Vue.options.components 上
         this.options[type + 's'][id] = definition;
+
         return definition
       }
     };
