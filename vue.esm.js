@@ -671,27 +671,43 @@ var uid = 0;
  * A dep is an observable that can have multiple
  * directives subscribing to it.
  */
+// 被订阅者
+// 有一个 subs 数组,存放此被订阅者的 订阅者
+// 一个可观测对象，可以有多个订阅
+// Dep 实际上就是对 Watcher 的一种管理
+
 var Dep = function Dep () {
+  // 这是此发布者的 id
   this.id = uid++;
+
+  // subs 是 watcher 的数组
   this.subs = [];
 };
 
+// add 方法,用于将 watcher 放入自己的 subs 管理
 Dep.prototype.addSub = function addSub (sub) {
   this.subs.push(sub);
 };
 
+// remove 方法,清除自己 subs 下的一个 watcher
 Dep.prototype.removeSub = function removeSub (sub) {
   remove(this.subs, sub);
 };
 
+// Dep.target 是当前正在计算的 watcher
+// depennd 会找到当前正在计算的 watcher
+// 并把自己传给当前的 watcher
+// 当前的 watcher 拿到这个 dep 实例后,会根据 newDepIds 中有无此 dep 实例的 id, 添加或者不添加
 Dep.prototype.depend = function depend () {
   if (Dep.target) {
     Dep.target.addDep(this);
   }
 };
 
+// notify 方法,用于通知自己 subs 下的 watcher 更新
 Dep.prototype.notify = function notify () {
   // stabilize the subscriber list first
+  // subs 中放的是 watcher
   var subs = this.subs.slice();
   for (var i = 0, l = subs.length; i < l; i++) {
     subs[i].update();
@@ -702,9 +718,8 @@ Dep.prototype.notify = function notify () {
 // this is globally unique because there could be only one
 // watcher being evaluated at any time.
 
-// 静态属性 target
-// 这是一个全局唯一 Watcher
-
+// Dep 有一个静态属性 target
+// 这是一个 全局唯一 Watcher
 Dep.target = null;
 var targetStack = [];
 
@@ -846,8 +861,11 @@ methodsToPatch.forEach(function (method) {
         inserted = args.slice(2);
         break
     }
+    // 因此可以看出,如果是对数组进行了 push,unshift,splice操作
+    // 会触发重新观测,变成响应式
     if (inserted) { ob.observeArray(inserted); }
     // notify change
+    // 并且触发更新
     ob.dep.notify();
     return result
   });
@@ -883,20 +901,32 @@ function toggleObserving (value) {
 //   vmCount: 0
 // }
 
+// Observer 是一个类，它的作用是给对象的属性添加 getter 和 setter
+// 接收的参数是定义的 data
+// 用于依赖搜集和派发更新
 var Observer = function Observer (value) {
   this.value = value;
   this.dep = new Dep();
   this.vmCount = 0;
+
   // 把自身实例添加到数据对象 value 的 __ob__ 属性上
   def(value, '__ob__', this);
 
+  // 这里厉害啦
+  // 要 observe 一个数组的情况
+  // augment 一般就是 protoAugment
+  // 将 数组类型的 value 的 __proto__ 变为对象 arrayMethods
+  // arrayMethods 也是一个对象,同时 arrayMethods 的原型是 Array.prototype
   if (Array.isArray(value)) {
     var augment = hasProto
       ? protoAugment
       : copyAugment;
     augment(value, arrayMethods, arrayKeys);
+
+    // 遍历数组再次调用 observe 方法
     this.observeArray(value);
   } else {
+    // 针对一个纯对象
     this.walk(value);
   }
 };
@@ -908,6 +938,8 @@ var Observer = function Observer (value) {
  */
 Observer.prototype.walk = function walk (obj) {
   var keys = Object.keys(obj);
+
+  // 遍历对象的 key 调用 defineReactive
   for (var i = 0; i < keys.length; i++) {
     defineReactive(obj, keys[i]);
   }
@@ -916,6 +948,7 @@ Observer.prototype.walk = function walk (obj) {
 /**
  * Observe a list of Array items.
  */
+// 对一个 data 中数组类型的obj,进行 observe
 Observer.prototype.observeArray = function observeArray (items) {
   for (var i = 0, l = items.length; i < l; i++) {
     observe(items[i]);
@@ -952,7 +985,9 @@ function copyAugment (target, src, keys) {
  * or the existing observer if the value already has one.
  */
 
-// 用来监测数据的变化
+// observe 的功能是用来监测数据的变化
+// observe 方法的作用就是给非 VNode 的对象类型数据添加一个 Observer
+// 接收的是 定义的 data 对象
 // observe(data, true /* asRootData */)
 
 function observe (value, asRootData) {
@@ -989,6 +1024,8 @@ function observe (value, asRootData) {
 //   defineReactive(obj, keys[i])
 // }
 
+// 同时，get 部分的逻辑，就是依赖搜集的过程
+
 function defineReactive (
   obj,
   key,
@@ -996,14 +1033,20 @@ function defineReactive (
   customSetter,
   shallow
 ) {
+  // 实例化一个 dep 实例
   var dep = new Dep();
 
+
+  // 获取该对象属性的属性描述符
   var property = Object.getOwnPropertyDescriptor(obj, key);
+  // 如果是不可配置的，就直接返回
+  // 可用于冻结对象，不做响应式
   if (property && property.configurable === false) {
     return
   }
 
   // cater for pre-defined getter/setters
+  // 获取属性的 get
   var getter = property && property.get;
   if (!getter && arguments.length === 2) {
     val = obj[key];
@@ -1011,14 +1054,31 @@ function defineReactive (
   var setter = property && property.set;
 
   // 对子对象递归调用 observe 方法
+  // 获取到 key 的值后
+  // 对这个值在进行 observe
+  // 如果 val 是一个对象，进入 observe 后，会再进行 Observer
   var childOb = !shallow && observe(val);
 
+
+  // val 是普通值，进行响应式绑定
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
+
+    // get 部分的逻辑
     get: function reactiveGetter () {
+      // 如果此 val 定义了 get 函数，就调用定义的 get 函数
+      // 并赋值给 value
+      // 否则，直接返回 value 就是 val
       var value = getter ? getter.call(obj) : val;
+      // 数据的 get 是在生成 VNode 的过程中,即在 
+      // vm._update(vm._render())
+      // 而在执行上面这个函数时,已经执行了 pushTarget()
+      // 将当前 watcher 放到 Dep.target
       if (Dep.target) {
+        // Dep.target 是当前 watcher
+
+        // dep.depend => Dep.target.addDep(this => dep)
         dep.depend();
         if (childOb) {
           childOb.dep.depend();
@@ -1055,21 +1115,30 @@ function defineReactive (
  * triggers change notification if the property doesn't
  * already exist.
  */
+// 给 data 添加新的响应式属性
+// target 可能是数组或者是普通对象
+// key 代表的是数组的下标或者是对象的键值
+// val 代表添加的值
 function set (target, key, val) {
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
   ) {
     warn(("Cannot set reactive property on undefined, null, or primitive value: " + ((target))));
   }
+  
+  // 数组,并且下标合法
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.length = Math.max(target.length, key);
     target.splice(key, 1, val);
     return val
   }
+
+  // key 已经存在于 target 中，则直接赋值返回
   if (key in target && !(key in Object.prototype)) {
     target[key] = val;
     return val
   }
+
   var ob = (target).__ob__;
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
@@ -1848,6 +1917,7 @@ function flushCallbacks () {
   pending = false;
   var copies = callbacks.slice(0);
   callbacks.length = 0;
+  // 对 callbacks 遍历，然后执行相应的回调函数
   for (var i = 0; i < copies.length; i++) {
     copies[i]();
   }
@@ -1870,10 +1940,14 @@ var useMacroTask = false;
 // in IE. The only polyfill that consistently queues the callback after all DOM
 // events triggered in the same loop is by using MessageChannel.
 /* istanbul ignore if */
+
+// 对 macro task 的实现
+// 先检测是否支持原生 setImmediate
 if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
   macroTimerFunc = function () {
     setImmediate(flushCallbacks);
   };
+// 是否支持原生 MessageChannel
 } else if (typeof MessageChannel !== 'undefined' && (
   isNative(MessageChannel) ||
   // PhantomJS
@@ -1885,6 +1959,7 @@ if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
   macroTimerFunc = function () {
     port.postMessage(1);
   };
+// 上面两个都没有的话,使用 setTimeout 0
 } else {
   /* istanbul ignore next */
   macroTimerFunc = function () {
@@ -1894,6 +1969,8 @@ if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
 
 // Determine microtask defer implementation.
 /* istanbul ignore next, $flow-disable-line */
+
+// 对于 micro task 的实现，则检测浏览器是否原生支持 Promise，不支持的话直接指向 macro task 的实现。
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
   var p = Promise.resolve();
   microTimerFunc = function () {
@@ -1925,6 +2002,7 @@ function withMacroTask (fn) {
 
 function nextTick (cb, ctx) {
   var _resolve;
+  // 传入的回调函数 cb 压入 callbacks 数组
   callbacks.push(function () {
     if (cb) {
       try {
@@ -1943,6 +2021,7 @@ function nextTick (cb, ctx) {
   if (!pending) {
     pending = true;
     // setTimeout(flushCallbacks, 0);
+    // 最后一次性地根据 useMacroTask 条件执行 macroTimerFunc 或者是 microTimerFunc
     if (useMacroTask) {
       macroTimerFunc();
     } else {
@@ -1950,6 +2029,7 @@ function nextTick (cb, ctx) {
     }
   }
   // $flow-disable-line
+  // 当 nextTick 不传 cb 参数的时候，提供一个 Promise 化的调用
   if (!cb && typeof Promise !== 'undefined') {
     return new Promise(function (resolve) {
       _resolve = resolve;
@@ -3148,7 +3228,9 @@ function resetSchedulerState () {
 /**
  * Flush both queues and run the watchers.
  */
+// 异步执行
 function flushSchedulerQueue () {
+  // 把控制添加搭配 queue 的 flag 置为 true
   flushing = true;
   var watcher, id;
 
@@ -3160,14 +3242,22 @@ function flushSchedulerQueue () {
   //    user watchers are created before the render watcher)
   // 3. If a component is destroyed during a parent component's watcher run,
   //    its watchers can be skipped.
+  
+  // queue 队列排序
+  // watcher 按照 从小到大排序
   queue.sort(function (a, b) { return a.id - b.id; });
 
   // do not cache length because more watchers might be pushed
   // as we run existing watchers
+  // queue 遍历
+  // 每次都会对 queue 重新求值
+  // 因为在 run 的时候，用户可能添加新的 watcher
   for (index = 0; index < queue.length; index++) {
     watcher = queue[index];
     id = watcher.id;
     has[id] = null;
+
+    // 执行 watcher 的 run 方法
     watcher.run();
     // in dev build, check and stop circular updates.
     if (process.env.NODE_ENV !== 'production' && has[id] != null) {
@@ -3189,7 +3279,9 @@ function flushSchedulerQueue () {
   // keep copies of post queues before resetting state
   var activatedQueue = activatedChildren.slice();
   var updatedQueue = queue.slice();
-
+  
+  //状态恢复
+  // 将 index ，has，wauting，flushing 恢复
   resetSchedulerState();
 
   // call component updated and activated hooks
@@ -3237,6 +3329,8 @@ function callActivatedHooks (queue) {
  * Jobs with duplicate IDs will be skipped unless it's
  * pushed when the queue is being flushed.
  */
+// 一般组件更新都会走到这里
+// 参数是 subs 中的每一个 watcher 实例
 function queueWatcher (watcher) {
   var id = watcher.id;
   if (has[id] == null) {
@@ -3246,10 +3340,13 @@ function queueWatcher (watcher) {
     } else {
       // if already flushing, splice the watcher based on its id
       // if already past its id, it will be run next immediately.
+      // 如果在 watcher run 的过程中，又添加了新的 watcher
       var i = queue.length - 1;
       while (i > index && queue[i].id > watcher.id) {
         i--;
       }
+      // 找到第一个待插入 watcher 的 id 比当前队列中 watcher 的 id 大的位置
+      // 把 watcher 按照 id的插入到队列中
       queue.splice(i + 1, 0, watcher);
     }
     // queue the flush
@@ -3279,6 +3376,7 @@ var Watcher = function Watcher (
   options,
   isRenderWatcher
 ) {
+  debugger
   this.vm = vm;
   if (isRenderWatcher) {
     vm._watcher = this;
@@ -3298,8 +3396,12 @@ var Watcher = function Watcher (
   this.active = true;
   this.dirty = this.lazy; // for lazy watchers
 
+  // 和 Dep 相关的属性
+
+  // Watcher 实例持有的 Dep 实例的数组
   this.deps = [];
   this.newDeps = [];
+
   this.depIds = new _Set();
   this.newDepIds = new _Set();
 
@@ -3411,6 +3513,7 @@ Watcher.prototype.update = function update () {
   } else if (this.sync) {
     this.run();
   } else {
+    // 一般的组件更新，都会走到这里
     queueWatcher(this);
   }
 };
@@ -3421,7 +3524,10 @@ Watcher.prototype.update = function update () {
  */
 Watcher.prototype.run = function run () {
   if (this.active) {
+    // 通过 get 取得值
     var value = this.get();
+    
+    // 新旧值不等、新值是对象类型、deep 模式
     if (
       value !== this.value ||
       // Deep watchers and watchers on Object/Arrays should fire even
@@ -3440,6 +3546,7 @@ Watcher.prototype.run = function run () {
           handleError(e, this.vm, ("callback for watcher \"" + (this.expression) + "\""));
         }
       } else {
+        // 回调执行会把 新值和旧值都传入作为参数
         this.cb.call(this.vm, value, oldValue);
       }
     }
@@ -3511,6 +3618,7 @@ function proxy (target, sourceKey, key) {
   Object.defineProperty(target, key, sharedPropertyDefinition);
 }
 
+// 初始化 prop，method，data
 function initState (vm) {
   vm._watchers = [];
   var opts = vm.$options;
@@ -3545,6 +3653,7 @@ function initProps (vm, propsOptions) {
     toggleObserving(false);
   }
   var loop = function ( key ) {
+    // keys = vm.$options._propKeys = [];
     keys.push(key);
     // 校验,获取到 prop 的值
     var value = validateProp(key, propsOptions, propsData, vm);
@@ -3648,6 +3757,7 @@ function getData (data, vm) {
 
 var computedWatcherOptions = { lazy: true };
 
+// 初始化 computed
 function initComputed (vm, computed) {
   // $flow-disable-line
   var watchers = vm._computedWatchers = Object.create(null);
@@ -3657,7 +3767,9 @@ function initComputed (vm, computed) {
   for (var key in computed) {
     // getter 是某个计算属性的 getter，普通函数 或者是手写的计算属性 get 函数
     var userDef = computed[key];
+    // computed 可以是一个函数,也可以是一个具有 get 属性的对象
     var getter = typeof userDef === 'function' ? userDef : userDef.get;
+
     if (process.env.NODE_ENV !== 'production' && getter == null) {
       warn(
         ("Getter is missing for computed property \"" + key + "\"."),
@@ -3668,6 +3780,7 @@ function initComputed (vm, computed) {
     if (!isSSR) {
       // create internal watcher for the computed property.
       // 为每一个 计算属性 key 添加一个 watcher
+      // 添加的这个 watcher 是一个 computed watcher
       watchers[key] = new Watcher(
         vm,
         getter || noop,
@@ -3721,10 +3834,13 @@ function defineComputed (
       );
     };
   }
+  // 利用 Object.defineProperty 给计算属性对应的 key 值添加 getter 和 setter
   // 代理到 target/vm 上，搭配 getter 函数
   Object.defineProperty(target, key, sharedPropertyDefinition);
 }
 
+// 创建计算属性的 getter
+// createComputedGetter  方法返回一个函数,作为计算属性的 getter
 function createComputedGetter (key) {
   return function computedGetter () {
     var watcher = this._computedWatchers && this._computedWatchers[key];
@@ -3823,6 +3939,8 @@ function stateMixin (Vue) {
   Vue.prototype.$set = set;
   Vue.prototype.$delete = del;
 
+  // vm.$watch(expOrFn, handler, options)
+  // key, handler, options
   Vue.prototype.$watch = function (
     expOrFn,
     cb,
@@ -3833,6 +3951,7 @@ function stateMixin (Vue) {
       return createWatcher(vm, expOrFn, cb, options)
     }
     options = options || {};
+    // 是一个 user watcher
     options.user = true;
     var watcher = new Watcher(vm, expOrFn, cb, options);
     if (options.immediate) {
@@ -4760,7 +4879,6 @@ function _createElement (
       );
     }
   } else {
-    debugger
     // tag 是一个组件对象,所以直接去创建一个组件 VNode
     // direct component options / constructor
     vnode = createComponent(tag, data, context, children);
@@ -5028,7 +5146,11 @@ function initMixin (Vue) {
     // beforeCreate 钩子函数的调用是在 initState 前,故拿不到 data props,methods 等属性
     callHook(vm, 'beforeCreate');  // 触发钩子函数
     initInjections(vm); // resolve injections before data/props
-    initState(vm);      // 初始化 props methods data
+
+    // 初始化 props methods data
+    // 并且变成响应式
+    initState(vm);
+
     initProvide(vm);   // resolve provide after data/props
 
     // created 钩子函数的调用是在 initState 前,故拿不到 data props,methods 等属性
