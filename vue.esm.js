@@ -50,6 +50,7 @@ function isObject (obj) {
 /**
  * Get the raw type string of a value e.g. [object Object]
  */
+// 获取原生类型
 var _toString = Object.prototype.toString;
 
 function toRawType (value) {
@@ -60,10 +61,12 @@ function toRawType (value) {
  * Strict object type check. Only returns true
  * for plain JavaScript objects.
  */
+// 比较严格的对象判断
 function isPlainObject (obj) {
   return _toString.call(obj) === '[object Object]'
 }
 
+// 判断是正则对象
 function isRegExp (v) {
   return _toString.call(v) === '[object RegExp]'
 }
@@ -71,6 +74,7 @@ function isRegExp (v) {
 /**
  * Check if val is a valid array index.
  */
+// 是否合法数组索引
 function isValidArrayIndex (val) {
   var n = parseFloat(String(val));
   return n >= 0 && Math.floor(n) === n && isFinite(val)
@@ -83,7 +87,7 @@ function toString (val) {
   return val == null
     ? ''
     : typeof val === 'object'
-      ? JSON.stringify(val, null, 2)
+      ? JSON.stringify(val, null, 2) // 使用两个空格缩进
       : String(val)
 }
 
@@ -102,7 +106,7 @@ function toNumber (val) {
  */
 function makeMap (
   str,
-  expectsLowerCase
+  expectsLowerCase  // 是否期待小写
 ) {
   var map = Object.create(null);
   var list = str.split(',');
@@ -117,16 +121,20 @@ function makeMap (
 /**
  * Check if a tag is a built-in tag.
  */
+// 是否 Vue 内置的 tag
 var isBuiltInTag = makeMap('slot,component', true);
 
 /**
  * Check if a attribute is a reserved attribute.
  */
+
+//  是否 Vue 保留的属性
 var isReservedAttribute = makeMap('key,ref,slot,slot-scope,is');
 
 /**
  * Remove an item from an array
  */
+// 从数组一项
 function remove (arr, item) {
   if (arr.length) {
     var index = arr.indexOf(item);
@@ -139,6 +147,8 @@ function remove (arr, item) {
 /**
  * Check whether the object has the property.
  */
+// 检查对象是否包含某个属性值
+// 使用 hasOwnProperty 方法，不会到原型中寻找
 var hasOwnProperty = Object.prototype.hasOwnProperty;
 function hasOwn (obj, key) {
   return hasOwnProperty.call(obj, key)
@@ -147,6 +157,7 @@ function hasOwn (obj, key) {
 /**
  * Create a cached version of a pure function.
  */
+// 缓存一次函数
 function cached (fn) {
   var cache = Object.create(null);
   return (function cachedFn (str) {
@@ -158,6 +169,10 @@ function cached (fn) {
 /**
  * Camelize a hyphen-delimited string.
  */
+
+// 短横线变成驼峰
+// replace 方法第二个参数，可以是一个函数
+// 这个函数的参数依次是匹配到的字符，第一个匹配的索引位置，以及原字符串
 var camelizeRE = /-(\w)/g;
 var camelize = cached(function (str) {
   return str.replace(camelizeRE, function (_, c) { return c ? c.toUpperCase() : ''; })
@@ -166,6 +181,7 @@ var camelize = cached(function (str) {
 /**
  * Capitalize a string.
  */
+// 首字母大写
 var capitalize = cached(function (str) {
   return str.charAt(0).toUpperCase() + str.slice(1)
 });
@@ -187,6 +203,7 @@ var hyphenate = cached(function (str) {
  */
 
 /* istanbul ignore next */
+// bind 函数的 polyfill
 function polyfillBind (fn, ctx) {
   function boundFn (a) {
     var l = arguments.length;
@@ -212,10 +229,14 @@ var bind = Function.prototype.bind
 /**
  * Convert an Array-like object to a real Array.
  */
+// 类数组转化为真数组
+
 function toArray (list, start) {
   start = start || 0;
   var i = list.length - start;
+  // 创建一个同样长度的数组
   var ret = new Array(i);
+  // 倒序，通过索引赋值
   while (i--) {
     ret[i] = list[i + start];
   }
@@ -225,6 +246,7 @@ function toArray (list, start) {
 /**
  * Mix properties into target object.
  */
+// 将来源对象属性赋值到目标对象
 function extend (to, _from) {
   for (var key in _from) {
     to[key] = _from[key];
@@ -235,6 +257,7 @@ function extend (to, _from) {
 /**
  * Merge an Array of Objects into a single Object.
  */
+// 将数组中的对象属性合并到一个对象
 function toObject (arr) {
   var res = {};
   for (var i = 0; i < arr.length; i++) {
@@ -275,6 +298,8 @@ function genStaticKeys (modules) {
  * Check if two values are loosely equal - that is,
  * if they are plain objects, do they have the same shape?
  */
+// 是否松散相等，
+// 例如，如果是对象，是否具有相同属性
 function looseEqual (a, b) {
   if (a === b) { return true }
   var isObjectA = isObject(a);
@@ -283,10 +308,13 @@ function looseEqual (a, b) {
     try {
       var isArrayA = Array.isArray(a);
       var isArrayB = Array.isArray(b);
+      // 都是数组
       if (isArrayA && isArrayB) {
         return a.length === b.length && a.every(function (e, i) {
+          // 递归比较两项
           return looseEqual(e, b[i])
         })
+        // 都不是数组
       } else if (!isArrayA && !isArrayB) {
         var keysA = Object.keys(a);
         var keysB = Object.keys(b);
@@ -302,6 +330,7 @@ function looseEqual (a, b) {
       return false
     }
   } else if (!isObjectA && !isObjectB) {
+    // 如果都不是对象，就转成字符串比较
     return String(a) === String(b)
   } else {
     return false
@@ -318,6 +347,7 @@ function looseIndexOf (arr, val) {
 /**
  * Ensure a function is called only once.
  */
+// 确保函数只调用一次
 function once (fn) {
   var called = false;
   return function () {
@@ -330,12 +360,15 @@ function once (fn) {
 
 var SSR_ATTR = 'data-server-rendered';
 
+// 内置类型
 var ASSET_TYPES = [
   'component',
   'directive',
   'filter'
 ];
 
+
+// 生命周期
 var LIFECYCLE_HOOKS = [
   'beforeCreate',
   'created',
@@ -445,6 +478,7 @@ var config = ({
 /**
  * Check if a string starts with $ or _
  */
+// 检查一个字符是否以 $ 或 _ 开头
 function isReserved (str) {
   var c = (str + '').charCodeAt(0);
   return c === 0x24 || c === 0x5F
@@ -453,6 +487,7 @@ function isReserved (str) {
 /**
  * Define a property.
  */
+// 定义一个属性
 function def (obj, key, val, enumerable) {
   Object.defineProperty(obj, key, {
     value: val,
@@ -485,6 +520,7 @@ function parsePath (path) {
 // can we use __proto__?
 var hasProto = '__proto__' in {};
 
+// 浏览器环境
 // Browser environment sniffing
 var inBrowser = typeof window !== 'undefined';
 var inWeex = typeof WXEnvironment !== 'undefined' && !!WXEnvironment.platform;
@@ -516,6 +552,7 @@ if (inBrowser) {
 
 // this needs to be lazy-evaled because vue may be required before
 // vue-server-renderer can set VUE_ENV
+// 是否服务端渲染
 var _isServer;
 var isServerRendering = function () {
   if (_isServer === undefined) {
@@ -532,6 +569,7 @@ var isServerRendering = function () {
 };
 
 // detect devtools
+// 检测开发辅助工具
 var devtools = inBrowser && window.__VUE_DEVTOOLS_GLOBAL_HOOK__;
 
 /* istanbul ignore next */
@@ -539,10 +577,13 @@ function isNative (Ctor) {
   return typeof Ctor === 'function' && /native code/.test(Ctor.toString())
 }
 
+// 是否原生支持 Symbol
 var hasSymbol =
   typeof Symbol !== 'undefined' && isNative(Symbol) &&
   typeof Reflect !== 'undefined' && isNative(Reflect.ownKeys);
 
+
+// set 构造函数
 var _Set;
 /* istanbul ignore if */ // $flow-disable-line
 if (typeof Set !== 'undefined' && isNative(Set)) {

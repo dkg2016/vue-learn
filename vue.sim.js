@@ -1,3 +1,4 @@
+// Dep
 let uid = 0;
 function Dep () {
   this.watchers = []
@@ -10,13 +11,13 @@ Dep.prototype.addWatcher = function (watcher) {
 Dep.prototype.removeWatcher = function (watcher) {
   let index = this.watchers.indexOf(watcher)
   if (index > -1) {
-    arr.splice(index, 1)
+    this.watchers.splice(index, 1)
   }
-},
+}
 
 Dep.prototype.notify = function () {
   let watchers = this.watchers.slice()
-  for(let i = 0, l = watchers.length; i < l; i++) {
+  for (let i = 0, l = watchers.length; i < l; i++) {
     watchers[i].update()
   }
 }
@@ -27,57 +28,46 @@ Dep.prototype.change = function () {
 
 Dep.prototype.depend = function () {
   if (Dep.target) {
-    Dep.target.addDep(this);
+    Dep.target.addDep(this)
   }
 }
 
-Dep.target = null;
-var targetStack = [];
+Dep.target = null
+// var targetStack = []
 
-
-function Observer (name, sub) {
+// Watcher
+function Watcher (name, sub) {
   this.name = name
   this.sub = sub
   this.sub.add(this)
 }
 
-Observer.prototype.update = function () {
+Watcher.prototype.update = function () {
   console.log(this.sub + '更新')
 }
 
 let data = {
-  msgOne: '',
-  msgTwo: ''
+  msg: ''
 }
 
-Object.defineProperty(data, 'msgOne', {
-  get: function() {
-    let msg = '第一行'
-    return msg || ''
-  },
-  set: function (val) {
-    data.msgOne = val
-  }
-})
-
-function V () {
-
+function V (options) {
+  this.init(options)
 }
 
 V.prototype.init = function (options) {
-  Observer(optiosn)
+  observe(options)
 }
 
 function observe (data) {
   let ob = new Observer(data)
+  return ob
 }
 
 function Observer (data) {
   this.value = data
   this.dep = new Dep()
-  
   const keys = Object.keys(data)
-  for (let i = 0; i< keys.length;i++) {
+  for (let i = 0; i < keys.length; i++) {
     defineReactive(data, keys[i])
   }
 }
@@ -97,9 +87,10 @@ function defineReactive (obj, key) {
       return value
     },
     set: function (newVal) {
-      const value = val
       val = newVal
       dep.notify()
     }
   })
 }
+new V(data)
+console.log(data)
