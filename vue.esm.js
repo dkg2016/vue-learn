@@ -9852,7 +9852,7 @@ function createASTElement (
  * Convert HTML string to AST.
  */
 // 模板编译成 抽象语法树
-// options 和平台相关的一些配置
+// options 是和平台相关的一些配置
 function parse (
   template,
   options
@@ -9871,6 +9871,9 @@ function parse (
 
   var stack = [];
   var preserveWhitespace = options.preserveWhitespace !== false;
+
+  // 👆以上，从配置项 options 中获取到一些配置和方法，这些是后续解析需要的
+
   var root;
   var currentParent;
   var inVPre = false;
@@ -9898,6 +9901,8 @@ function parse (
     }
   }
 
+
+  // 解析 HTML 模板
   parseHTML(template, {
     warn: warn$2,
     expectHTML: options.expectHTML,
@@ -10603,13 +10608,21 @@ var genStaticKeysCached = cached(genStaticKeys$1);
  *    create fresh nodes for them on each re-render;
  * 2. Completely skip them in the patching process.
  */
+
+// 优化 AST
+// 模板并不是所有数据都是响应式的
+// 可以在 patch 的过程跳过对他们的比对
 function optimize (root, options) {
   if (!root) { return }
   isStaticKey = genStaticKeysCached(options.staticKeys || '');
   isPlatformReservedTag = options.isReservedTag || no;
+  
   // first pass: mark all non-static nodes.
+  // 标记静态节点
   markStatic$1(root);
+  
   // second pass: mark static roots.
+  // 标记静态根
   markStaticRoots(root, false);
 }
 
@@ -10621,7 +10634,12 @@ function genStaticKeys$1 (keys) {
 }
 
 function markStatic$1 (node) {
+  // isStatic 是对一个 AST 元素节点是否是静态的判断
   node.static = isStatic(node);
+  
+  // 如果这个节点是一个普通元素，则遍历它的所有 children，递归执行 markStatic
+  // 一旦子节点有不是 static 的情况，则它的父节点的 static 均变成 false
+
   if (node.type === 1) {
     // do not make component slot content static. this avoids
     // 1. components not able to mutate slot nodes
@@ -10652,6 +10670,7 @@ function markStatic$1 (node) {
   }
 }
 
+// 标记静态根
 function markStaticRoots (node, isInFor) {
   if (node.type === 1) {
     if (node.static || node.once) {
@@ -11448,8 +11467,8 @@ function createCompileToFunctionFn (compile) {
   var cache = Object.create(null);
 
   return function compileToFunctions (
-    template,
-    options,
+    template, // 编译模板
+    options,  // 编译配置
     vm
   ) {
     options = extend({}, options);
@@ -11483,6 +11502,7 @@ function createCompileToFunctionFn (compile) {
     }
 
     // compile
+    // 核心的编译过程
     var compiled = compile(template, options);
 
     // check compilation errors/tips
@@ -11566,7 +11586,9 @@ function createCompilerCreator (baseCompile) {
         }
       }
 
+      // 执行编译
       var compiled = baseCompile(template, finalOptions);
+
       if (process.env.NODE_ENV !== 'production') {
         errors.push.apply(errors, detectErrors(compiled.ast));
       }
@@ -11591,10 +11613,15 @@ var createCompiler = createCompilerCreator(function baseCompile (
   template,
   options
 ) {
+  // 解析模板字符串生成 AST
   var ast = parse(template.trim(), options);
+
+  // 优化语法树
   if (options.optimize !== false) {
     optimize(ast, options);
   }
+
+  // 生成代码
   var code = generate(ast, options);
   return {
     ast: ast,
