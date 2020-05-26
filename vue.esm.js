@@ -737,7 +737,7 @@ Dep.prototype.removeSub = function removeSub (sub) {
 
 // Dep.target 是当前正在计算的 watcher
 // depennd 会找到当前正在计算的 watcher
-// 并把自己传给当前的 watcher
+// 并把自己传给当前 watcher 的 addDep 方法
 // 当前的 watcher 拿到这个 dep 实例后,会根据 newDepIds 中有无此 dep 实例的 id, 添加或者不添加
 Dep.prototype.depend = function depend () {
   if (Dep.target) {
@@ -765,11 +765,12 @@ Dep.target = null;
 var targetStack = [];
 
 function pushTarget (_target) {
-  // 实际上就是把 Dep.target 赋值为当前的渲染 watcher 并压栈
+  // 实际上就是把 Dep.target 赋值为当前的渲染 watcher，并压栈
   if (Dep.target) { targetStack.push(Dep.target); }
   Dep.target = _target;
 }
 
+// 恢复 target 为上一个 watcher
 function popTarget () {
   Dep.target = targetStack.pop();
 }
@@ -823,6 +824,7 @@ prototypeAccessors.child.get = function () {
 
 Object.defineProperties( VNode.prototype, prototypeAccessors );
 
+// 创建一个空 VNode 节点
 var createEmptyVNode = function (text) {
   if ( text === void 0 ) text = '';
 
@@ -832,6 +834,7 @@ var createEmptyVNode = function (text) {
   return node
 };
 
+// 创建一个 text 类型的 VNode
 function createTextVNode (val) {
   return new VNode(undefined, undefined, undefined, String(val))
 }
@@ -868,6 +871,7 @@ function cloneVNode (vnode) {
  */
 
 var arrayProto = Array.prototype;
+// 生成一个对象，对象的原项链是原生数组的 prototype
 var arrayMethods = Object.create(arrayProto);
 
 var methodsToPatch = [
@@ -885,11 +889,17 @@ var methodsToPatch = [
  */
 methodsToPatch.forEach(function (method) {
   // cache original method
+  // 获取到原始方法
   var original = arrayProto[method];
+  // 给 arrayMethods 这个对象定义方法
+  // 利用了原型链的遮蔽效应
   def(arrayMethods, method, function mutator () {
+    
+    // 使用新定义到方法时，拿到传进来到参数
     var args = [], len = arguments.length;
     while ( len-- ) args[ len ] = arguments[ len ];
 
+    // 调用原生方法到返回值
     var result = original.apply(this, args);
     var ob = this.__ob__;
     var inserted;
@@ -903,10 +913,11 @@ methodsToPatch.forEach(function (method) {
         break
     }
     // 因此可以看出,如果是对数组进行了 push,unshift,splice操作
-    // 会触发重新观测,变成响应式
+    // 会重新触发观测,变成响应式
     if (inserted) { ob.observeArray(inserted); }
     // notify change
-    // 并且触发更新
+
+    // 触发更新
     ob.dep.notify();
     return result
   });
@@ -914,6 +925,7 @@ methodsToPatch.forEach(function (method) {
 
 /*  */
 
+// 获取新定义的数组方法
 var arrayKeys = Object.getOwnPropertyNames(arrayMethods);
 
 /**
@@ -922,6 +934,7 @@ var arrayKeys = Object.getOwnPropertyNames(arrayMethods);
  */
 var shouldObserve = true;
 
+// 切换全局变量 shouldObserve
 function toggleObserving (value) {
   shouldObserve = value;
 }
@@ -932,6 +945,9 @@ function toggleObserving (value) {
  * object's property keys into getter/setters that
  * collect dependencies and dispatch updates.
  */
+
+// 观察者类被加到每个观测对象，一旦加类 观察者后，观察者就会把目标对象的属性变成响应式
+// 搜集依赖，派发更新
 
 // 给对象的属性添加 getter 和 setter
 // ob = new Observer(value)
@@ -952,12 +968,15 @@ var Observer = function Observer (value) {
 
   // 把自身实例添加到数据对象 value 的 __ob__ 属性上
   def(value, '__ob__', this);
+  // 从此，可以根据一个对象是否具有 __ob__ 属性，判断是否是响应式对象
 
   // 这里厉害啦
   // 要 observe 一个数组的情况
   // augment 一般就是 protoAugment
-  // 将 数组类型的 value 的 __proto__ 变为对象 arrayMethods
-  // arrayMethods 也是一个对象,同时 arrayMethods 的原型是 Array.prototype
+  // protoAugment 将 arrayMethods 将 value 的原型指向 arrayMethods
+  // 即 数组类型的 value 的 __proto__属性， 是 arrayMethods
+  // arrayMethods 也是一个对象,里面重写了数组的一些方法
+  // 同时 arrayMethods 的原型是 Array.prototype
   if (Array.isArray(value)) {
     var augment = hasProto
       ? protoAugment
@@ -977,6 +996,8 @@ var Observer = function Observer (value) {
  * getter/setters. This method should only be called when
  * value type is Object.
  */
+// 遍历对象的每一个属性，并且将其变成响应式
+// 只有在 value 是纯对象的的时候，才会调用
 Observer.prototype.walk = function walk (obj) {
   var keys = Object.keys(obj);
 
@@ -989,8 +1010,9 @@ Observer.prototype.walk = function walk (obj) {
 /**
  * Observe a list of Array items.
  */
-// 对一个 data 中数组类型的obj,进行 observe
+// 对一个数组类型的属性,进行观测 observe
 Observer.prototype.observeArray = function observeArray (items) {
+  // 如果是数组类型，就遍历每一个数组元素，每一个都进行 observe 
   for (var i = 0, l = items.length; i < l; i++) {
     observe(items[i]);
   }
@@ -1002,6 +1024,8 @@ Observer.prototype.observeArray = function observeArray (items) {
  * Augment an target Object or Array by intercepting
  * the prototype chain using __proto__
  */
+
+// 为 target 指定原型
 function protoAugment (target, src, keys) {
   /* eslint-disable no-proto */
   target.__proto__ = src;
@@ -1030,9 +1054,9 @@ function copyAugment (target, src, keys) {
 // observe 方法的作用就是给非 VNode 的对象类型数据添加一个 Observer
 // 接收的是 定义的 data 对象
 // observe(data, true /* asRootData */)
-
+// observe 一个对象
 function observe (value, asRootData) {
-  // 不是obj，或者是 VNode 实例，直接返回
+  // 不是 obj，或者是 VNode 实例，直接返回
   if (!isObject(value) || value instanceof VNode) {
     return
   }
