@@ -1652,7 +1652,7 @@ function assertObjectType (name, value, vm) {
  * Core utility used in both instantiation and inheritance.
  */
 
-// 何必两个对象到一起
+// 合并两个对象到一起
 // 合并两个 options 到一起
 // 针对 options 中的不同 key，合并方法也不一样
 // 合并成一个新对象,并返回
@@ -1700,7 +1700,8 @@ function mergeOptions (
     mergeField(key);
   }
   for (key in child) {
-    // 把父当中没有的，再合并到 options 上
+    // 把父当中没有的配置，再合并到 options 上
+    // 比如 watch，filter 等，不是指具体的某个属性值 
     if (!hasOwn(parent, key)) {
       mergeField(key);
     }
@@ -2970,6 +2971,7 @@ function lifecycleMixin (Vue) {
 
       // 首次渲染的时候，没有旧的 VNode，把挂载的 $el 传递给 patch 函数
       // $el 是真实的 DOM 结构
+      // 会用 vnode 替换 vm.$el
       vm.$el = vm.__patch__(
         vm.$el, vnode, hydrating, false /* removeOnly */,
         vm.$options._parentElm,
@@ -3468,7 +3470,6 @@ var Watcher = function Watcher (
   options,
   isRenderWatcher
 ) {
-  debugger
   this.vm = vm;
   if (isRenderWatcher) {
     vm._watcher = this;
@@ -4885,6 +4886,7 @@ function _createElement (
   children, // 'hello'
   normalizationType  // 2
 ) {
+  debugger
   // 属性对象不能是响应式的
   if (isDef(data) && isDef((data).__ob__)) {
     process.env.NODE_ENV !== 'production' && warn(
@@ -4927,7 +4929,7 @@ function _createElement (
     children.length = 0;
   }
 
-  // 手写 render 的函数，childred 是任意类型的，也可能是嵌套的
+  // 手写 render 的函数，childred 是任意类型的，甚至可能只是一个字符，也可能是嵌套的
   // 所以，需要通过 normalizeChildren 方法，将子元素全部转换为 VNode
 
   // 如果是组件, children 是 undefined, 
@@ -4943,7 +4945,10 @@ function _createElement (
   // VNode 的创建
   //
 
+  // 这里创建的 VNode 不是本身的 VNode, 而是添加了父元素的 VNode
   var vnode, ns;
+  // 如果是一个 string 类型的 tag
+  // tag 是父元素的 tag
   if (typeof tag === 'string') {
     var Ctor;
     ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag);
@@ -4955,6 +4960,7 @@ function _createElement (
         config.parsePlatformTagName(tag), data, children,
         undefined, undefined, context
       );
+      // 如果是一个已注册的组件名
       // 通过 createComponent 创建一个组件类型的 VNode
     } else if (isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
       // 创建一个组件 VNode
@@ -5429,7 +5435,10 @@ function initExtend (Vue) {
     var Super = this; // Vue
     var SuperId = Super.cid;
     var cachedCtors = extendOptions._Ctor || (extendOptions._Ctor = {}); // 首次，空对象
-    if (cachedCtors[SuperId]) { // 若已经缓存过，直接返回
+
+    // 若已经缓存过，直接返回
+    // 多次调用同一个组件，可以直接返回，不用再生成
+    if (cachedCtors[SuperId]) { 
       return cachedCtors[SuperId]
     }
 
@@ -5443,12 +5452,13 @@ function initExtend (Vue) {
     // 创建一个构造器函数 Sub,继承于 Vue
     // new 调用 Sub 时，会实例化 Sub ,执行 _init
     // Sub 原项链是 Super.prototype
+    // 实例化 Sub 时，会调用 _init
     var Sub = function VueComponent (options) {
       this._init(options);
     };
 
     // 原型继承
-    // Sub.prototype = Vue.prototype
+    // Sub.prototype.__proto__ = Vue.prototype
     // 实例化 Sub 时候,将会创建一个新对象
     // 这个对象将能够通过原型链,访问 Vue prototype 上的方法
     Sub.prototype = Object.create(Super.prototype);  
@@ -6347,6 +6357,7 @@ function createPatchFunction (backend) {
       /* istanbul ignore if */
 
       // 先去生成子节点
+      // 根据 VNode 的 children 去生成真实的子元素
       {
         // 调用 createChildren 方法去创建子元素
         createChildren(vnode, children, insertedVnodeQueue);
@@ -6474,7 +6485,7 @@ function createPatchFunction (backend) {
       if (process.env.NODE_ENV !== 'production') {
         checkDuplicateKeys(children);
       }
-
+      // children 是一个 VNode 类型的数组🐖
       // VNode 的 children 也是 VNode，所以，需要先把子 VNode转变为真实的 DOM
       // 这里就要对 children 进行一次遍历，变成真实 DOM
       // 并且每次都把 vnode.elm 作为父节点参数传入，保证生成的子真实 DOM append 到父级 DOM 上
@@ -6486,6 +6497,7 @@ function createPatchFunction (backend) {
       // ↑↑↑ 经过上面的循环遍历之后，父级真实 DOM 上已经挂载了所有子节点的真实 DOM 结构
       // 即此时 vnode 的 elm 是一个真实 DOM 树，需要插入到 body 中了
     } else if (isPrimitive(vnode.text)) {
+      // 如果子元素是一个纯粹的 text 类型的 VNode，那么就直接生成真实 DOM 结构，并插入到其真实父元素 DOM
       nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text)));
     }
   }
@@ -6885,8 +6897,8 @@ function createPatchFunction (backend) {
   // 并赋值给 Vue.prototype.__patch__, 即 vm.__patch__
 
   // 接收的前四个参数：
-  // 旧的 VNode 节点
-  // 执行 _render 后返回的新的 VNode 节点
+  // 旧的 VNode 节点,可以不存在或者是一个 DOM 对象
+  // vnode 表示执行 _render 后返回的 VNode 的节点
   // 是否服务端渲染
   // transition-group 使用的参数
   return function patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
@@ -6941,7 +6953,7 @@ function createPatchFunction (backend) {
           // create an empty node and replace it
 
           // emptyNodeAt 方法把传进来的真实 DOM 结构 转换成 VNode 对象
-          // 且其 elm 属性是原始的真实 DOM
+          // 且其 elm 属性是原来的真实 DOM
           oldVnode = emptyNodeAt(oldVnode);
         }
 
