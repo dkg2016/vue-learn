@@ -1054,7 +1054,7 @@ function copyAugment (target, src, keys) {
 // observe 方法的作用就是给非 VNode 的对象类型数据添加一个 Observer
 // 接收的是 定义的 data 对象
 // observe(data, true /* asRootData */)
-// observe 一个对象
+// observe 监测一个对象，将其变成响应式
 function observe (value, asRootData) {
   // 不是 obj，或者是 VNode 实例，直接返回
   if (!isObject(value) || value instanceof VNode) {
@@ -1113,12 +1113,18 @@ function defineReactive (
   // cater for pre-defined getter/setters
   // 获取属性的 get
   var getter = property && property.get;
+
+  // Observer.prototype.walk 的时候，arguments 长度是 2
   if (!getter && arguments.length === 2) {
     val = obj[key];
   }
   var setter = property && property.set;
 
-  // 对子对象递归调用 observe 方法
+  // 尝试对子对象递归调用 observe 方法
+  // 如果 val 是一个原始值，会直接返回，没有影响
+  // 如果 val 是一个对象，则会对对象的属性进行 observe
+  // 通过这一步，深度优先遍历，将每一个属性都变成响应式
+
   // 获取到 key 的值后
   // 对这个值在进行 observe
   // 如果 val 是一个对象，进入 observe 后，会再进行 Observer
@@ -1132,21 +1138,21 @@ function defineReactive (
 
     // get 部分的逻辑
     get: function reactiveGetter () {
-      // 如果此 val 定义了 get 函数，就调用定义的 get 函数
+      // 如果此 val 定义了 get 函数，就优先调用定义的 get 函数（更新的时候，get 函数已经有了）
       // 并赋值给 value
       // 否则，直接返回 value 就是 val
       var value = getter ? getter.call(obj) : val;
-      // 数据的 get 是在生成 VNode 的过程中,即在 
+      // 数据的 getter 的调用是在生成 VNode 的过程中,即在 
       // vm._update(vm._render())
       // 而在执行上面这个函数时,已经执行了 pushTarget()
-      // 将当前 watcher 放到 Dep.target
+      // pushTarget 会将当前 watcher 放到 Dep.target
       if (Dep.target) {
         // Dep.target 是当前 watcher
 
         // dep.depend => Dep.target.addDep(this => dep)
         dep.depend();
         if (childOb) {
-          childOb.dep.depend();
+          childOb.dep.depend();  // => Dep.target.addDep(this => dep)
           if (Array.isArray(value)) {
             dependArray(value);
           }
@@ -1184,6 +1190,7 @@ function defineReactive (
 // target 可能是数组或者是普通对象
 // key 代表的是数组的下标或者是对象的键值
 // val 代表添加的值
+// 这就是 Vue.set 方法，即 this.$set
 function set (target, key, val) {
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
@@ -1193,7 +1200,9 @@ function set (target, key, val) {
   
   // 数组,并且下标合法
   if (Array.isArray(target) && isValidArrayIndex(key)) {
+    // 兼容传进来的数组索引大于数组本身长度的情况
     target.length = Math.max(target.length, key);
+    // 删除这这一项，再加入这一项
     target.splice(key, 1, val);
     return val
   }
@@ -1204,6 +1213,7 @@ function set (target, key, val) {
     return val
   }
 
+  // 拿到原对象本身的 __ob__
   var ob = (target).__ob__;
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
@@ -1212,11 +1222,15 @@ function set (target, key, val) {
     );
     return val
   }
+  // 如果原对象本身就不是响应式的，就简单赋值下，返回就可以
   if (!ob) {
     target[key] = val;
     return val
   }
+
+  // 重新触发原对象的响应式搜集，新加入的属性也变成响应式的了
   defineReactive(ob.value, key, val);
+  // 触发更新
   ob.dep.notify();
   return val
 }
@@ -1224,6 +1238,7 @@ function set (target, key, val) {
 /**
  * Delete a property and trigger change if necessary.
  */
+// Vue.$set
 function del (target, key) {
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
@@ -1249,6 +1264,7 @@ function del (target, key) {
   if (!ob) {
     return
   }
+  // 触发更新
   ob.dep.notify();
 }
 
@@ -1293,6 +1309,7 @@ if (process.env.NODE_ENV !== 'production') {
 /**
  * Helper that recursively merges two data objects together.
  */
+// 递归将 from 对象合并到 to 上
 function mergeData (to, from) {
   if (!from) { return to }
   var key, toVal, fromVal;
@@ -1381,6 +1398,8 @@ strats.data = function (
 /**
  * Hooks and props are merged as arrays.
  */
+
+// 对生命周期的合并
 function mergeHook (
   parentVal,
   childVal
@@ -1405,6 +1424,8 @@ LIFECYCLE_HOOKS.forEach(function (hook) {
  * a three-way merge between constructor options, instance
  * options and parent options.
  */
+
+//  以原型链的方式合并 asset
 function mergeAssets (
   parentVal,
   childVal,
@@ -1419,7 +1440,7 @@ function mergeAssets (
     return res
   }
 }
-
+// 'component','directive','filter'
 ASSET_TYPES.forEach(function (type) {
   strats[type + 's'] = mergeAssets;
 });
@@ -1465,6 +1486,7 @@ strats.watch = function (
  * Other object hashes.
  */
 // 对 propo,methods,inject,computed 的合并
+// 简单的合并到一个对象
 strats.props =
 strats.methods =
 strats.inject =
@@ -1499,6 +1521,7 @@ var defaultStrat = function (parentVal, childVal) {
 /**
  * Validate component names
  */
+// 校验组件名称
 function checkComponents (options) {
   for (var key in options.components) {
     validateComponentName(key);
@@ -1527,6 +1550,10 @@ function validateComponentName (name) {
  */
 // 对 props 的规范化
 // 把编写的 props 转成对象格式
+// props = {
+//   name: { type: String},
+//   age: { type: Number}
+// }
 function normalizeProps (options, vm) {
   var props = options.props;
   if (!props) { return }
@@ -1642,13 +1669,13 @@ function mergeOptions (
     child = child.options;
   }
 
-  // 对 props 的规范化
+  // 对 child 的 props 的规范化
   normalizeProps(child, vm);
 
-  // 对 inject 的规范化
+  // 对 child 的 inject 的规范化
   normalizeInject(child, vm);
 
-  // 对 Directives 的规范化
+  // 对 child 的 Directives 的规范化
   normalizeDirectives(child);
   
   // 把 extends 合并到 parent 上
@@ -1664,7 +1691,7 @@ function mergeOptions (
     }
   }
 
-  // 最后要返回的对象
+  // 最后要返回的合并后的对象
   var options = {};
 
   var key;
@@ -1699,7 +1726,7 @@ function mergeOptions (
  * This function is used because child instances need access
  * to assets defined in its ancestor chain.
  */
-// 原型链
+// 根据 ID 找到对应发 asset
 function resolveAsset (
   options,
   type,
