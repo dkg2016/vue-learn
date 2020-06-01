@@ -781,12 +781,12 @@ function popTarget () {
 // 不论是正常的，还是组件，最终都是通过 _render 函数，变成 VNode
 var VNode = function VNode (
   tag, // 可能是一个标准 html ，也可能是一个组件名
-  data,
+  data, // tag 的属性，或者组件的事件、钩子函数
   children, // 组件没有子元素
   text,
   elm, // 真实 DOM
   context,
-  componentOptions,
+  componentOptions, // 组件配置对象
   asyncFactory
 ) {
   this.tag = tag;
@@ -2084,6 +2084,7 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
  * Wrap a function so that if any code inside triggers state change,
  * the changes are queued using a (macro) task instead of a microtask.
  */
+// 强制在 DOM 事件的回调函数执行期间如果修改了数据，那么这些数据更改推入的队列会被当做 macroTask 在 nextTick 后执行
 function withMacroTask (fn) {
   return fn._withTask || (fn._withTask = function () {
     useMacroTask = true;
@@ -2303,6 +2304,8 @@ function createFnInvoker (fns) {
   return invoker
 }
 
+
+// 遍历 on 去添加事件监听，遍历 oldOn 去移除事件监听
 function updateListeners (
   on,
   oldOn,
@@ -2311,9 +2314,11 @@ function updateListeners (
   vm
 ) {
   var name, def, cur, old, event;
+  // 遍历 on 去添加事件监听
   for (name in on) {
     def = cur = on[name];
     old = oldOn[name];
+    // 区分出这个事件是否有 once、capture、passive 等修饰符
     event = normalizeEvent(name);
     /* istanbul ignore if */
     if (isUndef(cur)) {
@@ -2331,6 +2336,7 @@ function updateListeners (
       on[name] = old;
     }
   }
+  // 遍历 oldOn 去移除事件监听
   for (name in oldOn) {
     if (isUndef(on[name])) {
       event = normalizeEvent(name);
@@ -2701,6 +2707,7 @@ function initEvents (vm) {
   vm._events = Object.create(null);
   vm._hasHookEvent = false;
   // init parent attached events
+  // 处理 listeners
   var listeners = vm.$options._parentListeners;
   if (listeners) {
     updateComponentListeners(vm, listeners);
@@ -2708,6 +2715,8 @@ function initEvents (vm) {
 }
 
 var target;
+
+// 利用 Vue 定义的事件中心
 
 function add (event, fn, once) {
   if (once) {
@@ -4662,7 +4671,7 @@ function createComponent (
     // 并且 Sub 的 options 已经经过了合并扩展
   }
   // 👆👆👆 Ctor 原来是一个纯对象
-  // 经过 extend 之后，变成一个构造函数
+  // 经过 extend 之后，变成一个继承于 Vue 的构造函数
   // 用来实例化一个组件
 
   // if at this stage it's not a constructor or an async component factory,
@@ -4715,9 +4724,12 @@ function createComponent (
 
   // extract listeners, since these needs to be treated as
   // child component listeners instead of DOM listeners
+  // 把 data.on 赋值给了 listeners
+  // listeners 会作为组件的配置项传入去生成 VNode
   var listeners = data.on;
   // replace with listeners with .native modifier
   // so it gets processed during parent component patch.
+  // 把 data.nativeOn 赋值给了 data.on
   data.on = data.nativeOn;
 
   if (isTrue(Ctor.options.abstract)) {
@@ -4886,7 +4898,7 @@ function _createElement (
   children, // 'hello'
   normalizationType  // 2
 ) {
-  debugger
+  // debugger
   // 属性对象不能是响应式的
   if (isDef(data) && isDef((data).__ob__)) {
     process.env.NODE_ENV !== 'production' && warn(
@@ -5289,7 +5301,10 @@ function initInternalComponent (vm, options) {
 
   var vnodeComponentOptions = parentVnode.componentOptions;
   opts.propsData = vnodeComponentOptions.propsData;
+  
+  // 到了父组件传入的 listeners
   opts._parentListeners = vnodeComponentOptions.listeners;
+
   opts._renderChildren = vnodeComponentOptions.children;
   opts._componentTag = vnodeComponentOptions.tag;
 
@@ -5426,7 +5441,7 @@ function initExtend (Vue) {
    */
 
   // 构造一个 Vue 的子类
-  // 原型继承，把一个纯对象转换一个继承于 Vue 的构造器 Sub 并返回
+  // 原型继承，把一个纯对象 extendOptions 转换成一个继承于 Vue 的构造器 Sub 并返回
   // 并对 Sub 这个对象本身扩展了一些属性
   // 接收一个要转化的对象 extendOptions
   // 参数是一个组件对象
@@ -5481,10 +5496,12 @@ function initExtend (Vue) {
     // the Vue instances at extension time, on the extended prototype. This
     // avoids Object.defineProperty calls for each instance created.
 
-    // 组件的 prop 代理
+    // 组件的 prop 初始化
     if (Sub.options.props) {
       initProps$1(Sub);
     }
+
+    // 组件的 computed 初始化
     if (Sub.options.computed) {
       initComputed$1(Sub);
     }
@@ -7426,6 +7443,7 @@ function addDirective (
   el.plain = false;
 }
 
+// 添加事件指令的方法
 function addHandler (
   el,
   name,
@@ -7447,15 +7465,22 @@ function addHandler (
     );
   }
 
+  // 根据修饰符，对 name 进行处理
   // check capture modifier
+
+  // capture
   if (modifiers.capture) {
     delete modifiers.capture;
     name = '!' + name; // mark the event as captured
   }
+
+  // once
   if (modifiers.once) {
     delete modifiers.once;
     name = '~' + name; // mark the event as once
   }
+
+  // passive
   /* istanbul ignore if */
   if (modifiers.passive) {
     delete modifiers.passive;
@@ -7474,6 +7499,7 @@ function addHandler (
     }
   }
 
+  // 判断是一个纯原生事件还是普通事件
   var events;
   if (modifiers.native) {
     delete modifiers.native;
@@ -7489,6 +7515,7 @@ function addHandler (
     newHandler.modifiers = modifiers;
   }
 
+  // 按照 name 对事件做归类
   var handlers = events[name];
   /* istanbul ignore if */
   if (Array.isArray(handlers)) {
@@ -7914,6 +7941,7 @@ function add$1 (
 ) {
   handler = withMacroTask(handler);
   if (once$$1) { handler = createOnceHandler(handler, event, capture); }
+  // 调用原生 addEventListener
   target$1.addEventListener(
     event,
     handler,
@@ -7929,6 +7957,7 @@ function remove$2 (
   capture,
   _target
 ) {
+  // 调用原生 removeEventListener
   (_target || target$1).removeEventListener(
     event,
     handler._withTask || handler,
@@ -7936,6 +7965,7 @@ function remove$2 (
   );
 }
 
+// 更新 DOM 事件
 function updateDOMListeners (oldVnode, vnode) {
   if (isUndef(oldVnode.data.on) && isUndef(vnode.data.on)) {
     return
@@ -10411,10 +10441,12 @@ function processAttrs (el) {
   for (i = 0, l = list.length; i < l; i++) {
     name = rawName = list[i].name;
     value = list[i].value;
+    // 判断是指令  /^v-|^@|^:/
     if (dirRE.test(name)) {
       // mark element as dynamic
       el.hasBindings = true;
       // modifiers
+      // 通过 parseModifiers 解析出修饰符
       modifiers = parseModifiers(name);
       if (modifiers) {
         name = name.replace(modifierRE, '');
@@ -10447,6 +10479,7 @@ function processAttrs (el) {
         } else {
           addAttr(el, name, value);
         }
+        // 判断如果是事件指令
       } else if (onRE.test(name)) { // v-on
         name = name.replace(onRE, '');
         addHandler(el, name, value, modifiers, false, warn$2);
@@ -10905,18 +10938,23 @@ function genHandler (
     return 'function(){}'
   }
 
+  // 如果 handler 是一个数组，就遍历它然后递归调用 genHandler 方法并拼接结果
   if (Array.isArray(handler)) {
     return ("[" + (handler.map(function (handler) { return genHandler(name, handler); }).join(',')) + "]")
   }
 
+  // 是一个函数路径
   var isMethodPath = simplePathRE.test(handler.value);
+  // 是一个函数表达式
   var isFunctionExpression = fnExpRE.test(handler.value);
 
   if (!handler.modifiers) {
+    // 直接返回
     if (isMethodPath || isFunctionExpression) {
       return handler.value
     }
     /* istanbul ignore if */
+    // 返回一个函数包裹的表达式
     return ("function($event){" + (handler.value) + "}") // inline statement
   } else {
     var code = '';
@@ -11207,9 +11245,11 @@ function genData$2 (el, state) {
     data += "domProps:{" + (genProps(el.props)) + "},";
   }
   // event handlers
+  // 事件处理
   if (el.events) {
     data += (genHandlers(el.events, false, state.warn)) + ",";
   }
+  // native 事件处理
   if (el.nativeEvents) {
     data += (genHandlers(el.nativeEvents, true, state.warn)) + ",";
   }
