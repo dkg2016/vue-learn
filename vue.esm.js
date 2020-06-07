@@ -104,6 +104,7 @@ function toNumber (val) {
  * Make a map and return a function for checking if a key
  * is in that map.
  */
+// 根据传入的参数,生成一个map,并返回一个函数,用以检查某个值是够属于这个 map
 function makeMap (
   str,
   expectsLowerCase  // 是否期待小写
@@ -4949,8 +4950,8 @@ var ALWAYS_NORMALIZE = 2;
 // 根据 render (手写的，或者是编译生成的) 函数生成 VNode
 function createElement (
   context,  // vm
-  tag,      // div 组件的话，是一个 组件对象 app
-  data,     // {attr:{id:'app'}}
+  tag,      // div 组件的话，是一个 组件对象
+  data,     // 属性 {attr:{id:'app'}}
   children, // 'hello'
   normalizationType, // undefined
   alwaysNormalize // true
@@ -5123,6 +5124,7 @@ function registerDeepBindings (data) {
 
 /*  */
 
+// 给 Vue 实例 挂载 _c 和 $createElement 方法
 function initRender (vm) {
   vm._vnode = null; // the root of the child tree
   vm._staticTrees = null; // v-once cached trees
@@ -5169,6 +5171,7 @@ function initRender (vm) {
   }
 }
 
+// 全局方法,给 Vue 原型挂载 辅助方法 $nextTick _render 方法
 function renderMixin (Vue) {
   // install runtime convenience helpers
   installRenderHelpers(Vue.prototype);
@@ -5458,6 +5461,7 @@ function dedupe (latest, extended, sealed) {
 }
 
 // 故事从这里开始
+// 定义全局的 Vue 函数
 function Vue (options) {
   if (process.env.NODE_ENV !== 'production' &&
     !(this instanceof Vue)
@@ -5482,8 +5486,13 @@ renderMixin(Vue);
 
 /*  */
 
+// 本身方法 use
+// 用于第三插件的注册
+// 接收一个 plugin 参数,并维护了一个 _installedPlugins 数组,存储缩有注册过的 plugin
 function initUse (Vue) {
   Vue.use = function (plugin) {
+
+    // 看缓存中有没有,有的话直接返回
     var installedPlugins = (this._installedPlugins || (this._installedPlugins = []));
     if (installedPlugins.indexOf(plugin) > -1) {
       return this
@@ -5491,19 +5500,23 @@ function initUse (Vue) {
 
     // additional parameters
     var args = toArray(arguments, 1);
+    // 将 Vue 放到参数第一位
     args.unshift(this);
+
     if (typeof plugin.install === 'function') {
       plugin.install.apply(plugin, args);
     } else if (typeof plugin === 'function') {
       plugin.apply(null, args);
     }
+
+    // 存储这个插件
     installedPlugins.push(plugin);
     return this
   };
 }
 
 /*  */
-
+// 本身方法 mixin
 function initMixin$1 (Vue) {
   Vue.mixin = function (mixin) {
     this.options = mergeOptions(this.options, mixin);
@@ -5513,6 +5526,7 @@ function initMixin$1 (Vue) {
 
 /*  */
 
+// 本身方法 extend
 function initExtend (Vue) {
   /**
    * Each instance constructor, including Vue, has a unique
@@ -5623,6 +5637,7 @@ function initExtend (Vue) {
   };
 }
 
+// 组件 prop 的初始化
 function initProps$1 (Comp) {
   var props = Comp.options.props;
   for (var key in props) {
@@ -5630,6 +5645,7 @@ function initProps$1 (Comp) {
   }
 }
 
+// 组件的 computed 初始化
 function initComputed$1 (Comp) {
   var computed = Comp.options.computed;
   for (var key in computed) {
@@ -5639,6 +5655,8 @@ function initComputed$1 (Comp) {
 
 /*  */
 
+
+// 在 initGlobalAPI 中执行, 给 Vue 定义一些属性
 function initAssetRegisters (Vue) {
   /**
    * Create asset registration methods.
@@ -5684,11 +5702,12 @@ function initAssetRegisters (Vue) {
 }
 
 /*  */
-
+// 获取组件名称
 function getComponentName (opts) {
   return opts && (opts.Ctor.options.name || opts.tag)
 }
 
+// 是否有匹配项
 function matches (pattern, name) {
   if (Array.isArray(pattern)) {
     return pattern.indexOf(name) > -1
@@ -5701,6 +5720,7 @@ function matches (pattern, name) {
   return false
 }
 
+// 和 keep-alive 组件有关
 function pruneCache (keepAliveInstance, filter) {
   var cache = keepAliveInstance.cache;
   var keys = keepAliveInstance.keys;
@@ -5846,6 +5866,7 @@ var builtInComponents = {
 
 /*  */
 
+// 初始化全局 api
 function initGlobalAPI (Vue) {
   // config
   var configDef = {};
@@ -5862,6 +5883,7 @@ function initGlobalAPI (Vue) {
   // exposed util methods.
   // NOTE: these are not considered part of the public API - avoid relying on
   // them unless you are aware of the risk.
+  // Vue.util 中是 Vue 的一些自己使用的方法,不是公开的使用的 api,慎用
   Vue.util = {
     warn: warn,
     extend: extend,
@@ -5907,10 +5929,12 @@ function initGlobalAPI (Vue) {
 
 initGlobalAPI(Vue);
 
+// 服务器端
 Object.defineProperty(Vue.prototype, '$isServer', {
   get: isServerRendering
 });
 
+// ssr 渲染
 Object.defineProperty(Vue.prototype, '$ssrContext', {
   get: function get () {
     /* istanbul ignore next */
@@ -5969,6 +5993,7 @@ var isFalsyAttrValue = function (val) {
 
 /*  */
 
+// 生成 VNode 的 class
 function genClassForVnode (vnode) {
   var data = vnode.data;
   var parentNode = vnode;
@@ -5987,6 +6012,7 @@ function genClassForVnode (vnode) {
   return renderClass(data.staticClass, data.class)
 }
 
+// 合并 class
 function mergeClassData (child, parent) {
   return {
     staticClass: concat(child.staticClass, parent.staticClass),
@@ -5996,6 +6022,7 @@ function mergeClassData (child, parent) {
   }
 }
 
+// 渲染 class
 function renderClass (
   staticClass,
   dynamicClass
@@ -6011,6 +6038,7 @@ function concat (a, b) {
   return a ? b ? (a + ' ' + b) : a : (b || '')
 }
 
+// 字符串化
 function stringifyClass (value) {
   if (Array.isArray(value)) {
     return stringifyArray(value)
@@ -6055,6 +6083,7 @@ var namespaceMap = {
   math: 'http://www.w3.org/1998/Math/MathML'
 };
 
+// 生成 html 原生 tag 的 map 校验函数
 var isHTMLTag = makeMap(
   'html,body,base,head,link,meta,style,title,' +
   'address,article,aside,footer,header,h1,h2,h3,h4,h5,h6,hgroup,nav,section,' +
@@ -6080,6 +6109,7 @@ var isSVG = makeMap(
 
 var isPreTag = function (tag) { return tag === 'pre'; };
 
+// 是否保留 tag
 var isReservedTag = function (tag) {
   return isHTMLTag(tag) || isSVG(tag)
 };
@@ -6095,6 +6125,7 @@ function getTagNamespace (tag) {
   }
 }
 
+// 无效的HTML元素
 var unknownElementCache = Object.create(null);
 function isUnknownElement (tag) {
   /* istanbul ignore if */
@@ -6128,6 +6159,7 @@ var isTextInputType = makeMap('text,number,password,search,email,tel,url');
 /**
  * Query an element selector if it's not an element already.
  */
+// 查询一个 DOM 节点
 function query (el) {
   if (typeof el === 'string') {
     var selected = document.querySelector(el);
@@ -6144,7 +6176,8 @@ function query (el) {
 }
 
 /*  */
-
+// 封装原生的 createElement 方法
+// 用于创建一个由标签名称 tagName 指定的 HTML 元素
 function createElement$1 (tagName, vnode) {
   var elm = document.createElement(tagName);
   if (tagName !== 'select') {
@@ -6161,47 +6194,59 @@ function createElementNS (namespace, tagName) {
   return document.createElementNS(namespaceMap[namespace], tagName)
 }
 
+// 创建一个新的文本节点
 function createTextNode (text) {
   return document.createTextNode(text)
 }
 
+// 创建并返回一个注释节点
 function createComment (text) {
   return document.createComment(text)
 }
 
+// 在参考节点之前插入一个拥有指定父节点的子节点
 function insertBefore (parentNode, newNode, referenceNode) {
   parentNode.insertBefore(newNode, referenceNode);
 }
 
+// 从DOM中删除一个子节点。返回删除的节点
 function removeChild (node, child) {
   node.removeChild(child);
 }
 
+// 将一个节点附加到指定父节点的子节点列表的末尾处
 function appendChild (node, child) {
   node.appendChild(child);
 }
 
+// 指定的节点在DOM树中的父节点
 function parentNode (node) {
   return node.parentNode
 }
 
+// 只读属性，返回其父节点的 childNodes 列表中紧跟在其后面的节点
 function nextSibling (node) {
   return node.nextSibling
 }
 
+// 返回当前元素的标签名
 function tagName (node) {
   return node.tagName
 }
 
+// 设置一个节点及其后代的文本内容
+// 节点上设置 textContent 属性的话，会删除它的所有子节点，并替换为一个具有给定值的文本节点
 function setTextContent (node, text) {
   node.textContent = text;
 }
 
+// 创建或改变某个新属性
 function setStyleScope (node, scopeId) {
   node.setAttribute(scopeId, '');
 }
 
 
+// 封装的 DOMN 操作方法
 var nodeOps = Object.freeze({
 	createElement: createElement$1,
 	createElementNS: createElementNS,
@@ -6277,6 +6322,7 @@ var emptyNode = new VNode('', {}, []);
 
 var hooks = ['create', 'activate', 'update', 'remove', 'destroy'];
 
+// 判断是否相同的 VNode
 function sameVnode (a, b) {
   return (
     a.key === b.key && (
@@ -6294,6 +6340,7 @@ function sameVnode (a, b) {
   )
 }
 
+// 相同的 input type
 function sameInputType (a, b) {
   if (a.tag !== 'input') { return true }
   var i;
@@ -6385,6 +6432,7 @@ function createPatchFunction (backend) {
     }
   }
 
+  // 把一个真实 DOM 节点变成虚拟 vnode,并且把原真实 DOM 放到 vnode 的 elm 属性上
   function emptyNodeAt (elm) {
     return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
   }
