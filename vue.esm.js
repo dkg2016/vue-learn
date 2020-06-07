@@ -783,31 +783,31 @@ var VNode = function VNode (
   tag, // 可能是一个标准 html ，也可能是一个组件名
   data, // tag 的属性，或者组件的事件、钩子函数
   children, // 组件没有子元素
-  text,
+  text, // 文本节点的文本
   elm, // 真实 DOM
-  context,
-  componentOptions, // 组件配置对象
+  context, // vue 实例
+  componentOptions, // 组件节点的选项参数
   asyncFactory
 ) {
   this.tag = tag;
   this.data = data;
   this.children = children;
   this.text = text;
-  this.elm = elm;
+  this.elm = elm; // 当前 vnode 对应的真实 DOM 结构
   this.ns = undefined;
   this.context = context;
   this.fnContext = undefined;
   this.fnOptions = undefined;
   this.fnScopeId = undefined;
-  this.key = data && data.key;
-  this.componentOptions = componentOptions;
-  this.componentInstance = undefined;
-  this.parent = undefined;
+  this.key = data && data.key; // 节点的 key 属性
+  this.componentOptions = componentOptions; // 组件配置项
+  this.componentInstance = undefined;  // 组件实例
+  this.parent = undefined; // 当前节点父节点
   this.raw = false;
-  this.isStatic = false;
-  this.isRootInsert = true;
-  this.isComment = false;
-  this.isCloned = false;
+  this.isStatic = false; // 是否是静态节点，静态节点更新不对比
+  this.isRootInsert = true; // 是否作为根节点插入
+  this.isComment = false;   // 是否是注释节点
+  this.isCloned = false;    // 是否克隆节点
   this.isOnce = false;
   this.asyncFactory = asyncFactory;
   this.asyncMeta = undefined;
@@ -824,7 +824,7 @@ prototypeAccessors.child.get = function () {
 
 Object.defineProperties( VNode.prototype, prototypeAccessors );
 
-// 创建一个空 VNode 节点
+// 创建一个空 VNode 节点/一个注释节点
 var createEmptyVNode = function (text) {
   if ( text === void 0 ) text = '';
 
@@ -835,6 +835,7 @@ var createEmptyVNode = function (text) {
 };
 
 // 创建一个 text 类型的 VNode
+// 只有一个参数 text
 function createTextVNode (val) {
   return new VNode(undefined, undefined, undefined, String(val))
 }
@@ -843,6 +844,9 @@ function createTextVNode (val) {
 // used for static nodes and slot nodes because they may be reused across
 // multiple renders, cloning them avoids errors when DOM manipulations rely
 // on their elm reference.
+
+// 优化静态节点和插槽节点
+// 克隆节点
 function cloneVNode (vnode) {
   var cloned = new VNode(
     vnode.tag,
@@ -861,6 +865,8 @@ function cloneVNode (vnode) {
   cloned.fnContext = vnode.fnContext;
   cloned.fnOptions = vnode.fnOptions;
   cloned.fnScopeId = vnode.fnScopeId;
+
+  // 标识 是克隆节点
   cloned.isCloned = true;
   return cloned
 }
@@ -1934,11 +1940,13 @@ function assertType (value, type) {
  * because a simple equality check will fail when running
  * across different vms / iframes.
  */
+// 获取函数名
 function getType (fn) {
   var match = fn && fn.toString().match(/^\s*function (\w+)/);
   return match ? match[1] : ''
 }
 
+// 是否同类
 function isSameType (a, b) {
   return getType(a) === getType(b)
 }
@@ -1956,7 +1964,7 @@ function getTypeIndex (type, expectedTypes) {
 }
 
 /*  */
-
+// 错误处理
 function handleError (err, vm, info) {
   if (vm) {
     var cur = vm;
@@ -2002,11 +2010,17 @@ function logError (err, vm, info) {
 
 /*  */
 /* globals MessageChannel */
+// 全局消息通道
 
+// 存放回调函数
 var callbacks = [];
+
+// 异步队列是否处于等待阶段
 var pending = false;
 
+// 执行 callbacks 中的回调
 function flushCallbacks () {
+  // 异步队列开始执行
   pending = false;
   var copies = callbacks.slice(0);
   callbacks.length = 0;
@@ -2017,17 +2031,26 @@ function flushCallbacks () {
 }
 
 // Here we have async deferring wrappers using both microtasks and (macro) tasks.
+// 使用 microtasks 和 macro 两种异步延迟
+
 // In < 2.4 we used microtasks everywhere, but there are some scenarios where
+// 2.4 之前只使用 microtasks,
+// 某些情况下，microtasks 优先级太高
+// 会有问题（连续触发/同一事件反复触发）
 // microtasks have too high a priority and fire in between supposedly
 // sequential events (e.g. #4521, #6690) or even between bubbling of the same
 // event (#6566). However, using (macro) tasks everywhere also has subtle problems
+// 也不能全部使用 macro, 否则重绘前的 state 变化会有问题
 // when state is changed right before repaint (e.g. #6813, out-in transitions).
 // Here we use microtask by default, but expose a way to force (macro) task when
 // needed (e.g. in event handlers attached by v-on).
+// 默认使用 micro，但是暴露一个强制使用 macro 的方法
 var microTimerFunc;
 var macroTimerFunc;
 var useMacroTask = false;
 
+
+// setImmediate 是最好的，但是只 ie；使用 MessageChannel
 // Determine (macro) task defer implementation.
 // Technically setImmediate should be the ideal choice, but it's only available
 // in IE. The only polyfill that consistently queues the callback after all DOM
@@ -2036,6 +2059,7 @@ var useMacroTask = false;
 
 // 对 macro task 的实现
 // 先检测是否支持原生 setImmediate
+// 只有 IE > 9 支持 setImmediate
 if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
   macroTimerFunc = function () {
     setImmediate(flushCallbacks);
@@ -2084,6 +2108,7 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
  * Wrap a function so that if any code inside triggers state change,
  * the changes are queued using a (macro) task instead of a microtask.
  */
+// 包装一个函数，
 // 强制在 DOM 事件的回调函数执行期间如果修改了数据，那么这些数据更改推入的队列会被当做 macroTask 在 nextTick 后执行
 function withMacroTask (fn) {
   return fn._withTask || (fn._withTask = function () {
@@ -2112,10 +2137,12 @@ function nextTick (cb, ctx) {
   // 等待状态时，只 压入栈
   // 异步队列执行时，即 flushCallbacks，会执行已经在栈里面的所有回调。
   // 同时把 pending 改为 false
+  // 表明此时 callbacks 并未执行，处于等待同步任务执行完的阶段
+  // 此可可以加入新的 回调函数，将来一起执行
   if (!pending) {
     pending = true;
     // setTimeout(flushCallbacks, 0);
-    // 最后一次性地根据 useMacroTask 条件执行 macroTimerFunc 或者是 microTimerFunc
+    // 最后一次性地根据 useMacroTask 条件执行 macroTimerFunc 或者是 microTimerFunc（异步的）
     if (useMacroTask) {
       macroTimerFunc();
     } else {
@@ -2232,7 +2259,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 /*  */
-
+// 实现一个 set 结构
 var seenObjects = new _Set();
 
 /**
@@ -2240,6 +2267,7 @@ var seenObjects = new _Set();
  * getters, so that every nested property inside the object
  * is collected as a "deep" dependency.
  */
+// 递归遍历每一个属性，以触发每一个属性的 getter，使得依赖收集完整
 function traverse (val) {
   _traverse(val, seenObjects);
   seenObjects.clear();
@@ -2248,9 +2276,13 @@ function traverse (val) {
 function _traverse (val, seen) {
   var i, keys;
   var isA = Array.isArray(val);
+  // 不是数组，不是对象，被 freeze，VNode 实例
+  // 直接返回
   if ((!isA && !isObject(val)) || Object.isFrozen(val) || val instanceof VNode) {
     return
   }
+
+  // 已经是一个被观测对象
   if (val.__ob__) {
     var depId = val.__ob__.dep.id;
     if (seen.has(depId)) {
@@ -2259,6 +2291,7 @@ function _traverse (val, seen) {
     seen.add(depId);
   }
   if (isA) {
+    // 数组的话，深度遍历
     i = val.length;
     while (i--) { _traverse(val[i], seen); }
   } else {
@@ -2285,6 +2318,8 @@ var normalizeEvent = cached(function (name) {
   }
 });
 
+// 函数执行器
+// 数组中的所有函数，接收参数，一次运行
 function createFnInvoker (fns) {
   function invoker () {
     var arguments$1 = arguments;
@@ -2315,6 +2350,7 @@ function updateListeners (
 ) {
   var name, def, cur, old, event;
   // 遍历 on 去添加事件监听
+  // on 对象是绑定的事件名称
   for (name in on) {
     def = cur = on[name];
     old = oldOn[name];
@@ -2423,6 +2459,7 @@ function extractPropsFromVNodeData (
   return res
 }
 
+// 检查 prop ？？？
 function checkProp (
   res,
   hash,
@@ -2449,15 +2486,17 @@ function checkProp (
 }
 
 /*  */
-
+// 模板编译器会试图通过静态分析，最小化 normalization
 // The template compiler attempts to minimize the need for normalization by
 // statically analyzing the template at compile time.
 //
+
+// 对于纯 HTML 标记，normalization 可以被跳过，因为 render 函数已经保证生成 Array<VNode>
 // For plain HTML markup, normalization can be completely skipped because the
 // generated render function is guaranteed to return Array<VNode>. There are
 // two cases where extra normalization is needed:
 
-// TODO:对于纯 html 标签，normalize 完全可以跳过，因为生成的render函数可以保证返回一个 Vnode 数组，
+// 对于纯 html 标签，normalize 完全可以跳过，因为生成的render函数可以保证返回一个 Vnode 数组，
 // 以下两种情况，需要normalization。
 
 // 1. When the children contains components - because a functional component
@@ -2466,7 +2505,7 @@ function checkProp (
 // thing with Array.prototype.concat. It is guaranteed to be only 1-level deep
 // because functional components already normalize their own children.
 
-// TODO: 当 children 包含组件时，因为函数式组件可能返回一个数组。此 case 下，需要一个简单的normalization。
+// 当 children 包含组件时，因为函数式组件可能返回一个数组。此 case 下，需要一个简单的 normalization。
 // 如果数组元素也是一个数组，使用数组的 concat 方法将其拍平。保证只有一层。
 
 // simpleNormalizeChildren 方法调用场景是 render 函数是编译生成的。
@@ -2730,6 +2769,7 @@ function remove$1 (event, fn) {
   target.$off(event, fn);
 }
 
+// 更新组件事件
 function updateComponentListeners (
   vm,
   listeners,
@@ -2740,6 +2780,8 @@ function updateComponentListeners (
   target = undefined;
 }
 
+
+// 事件相关的 混入
 function eventsMixin (Vue) {
   var hookRE = /^hook:/;
   Vue.prototype.$on = function (event, fn) {
@@ -2913,6 +2955,7 @@ function resolveScopedSlots (
 var activeInstance = null;
 var isUpdatingChildComponent = false;
 
+// 生命周期
 function initLifecycle (vm) {
   var options = vm.$options;
 
@@ -3079,7 +3122,7 @@ function mountComponent (
   vm.$el = el;
   // 讲道理，此时肯定有 render 函数了
 
-  // 如果上一步没有传过来 render 函数
+  // 如果上一步没有生成 render 函数
   // 即 既没有手写 render 函数，也没有模板编译成 render 函数
   if (!vm.$options.render) {
     // 此种情况下，将 render 函数 定义为一个创建空 vnode 的函数
@@ -3169,6 +3212,7 @@ function mountComponent (
   return vm
 }
 
+// 更新组件实例的一些属性
 function updateChildComponent (
   vm,
   propsData,
@@ -3331,7 +3375,7 @@ function resetSchedulerState () {
 /**
  * Flush both queues and run the watchers.
  */
-// 异步执行
+// 异步执行 组件更新
 function flushSchedulerQueue () {
   // 把控制添加搭配 queue 的 flag 置为 true
   flushing = true;
@@ -3339,16 +3383,22 @@ function flushSchedulerQueue () {
 
   // Sort queue before flush.
   // This ensures that:
+  // 优先更新父组件,因为父组件总是比子组件子组件的
   // 1. Components are updated from parent to child. (because parent is always
   //    created before the child)
+
+  // 用户定义的 watcher 优先于 render watcher
   // 2. A component's user watchers are run before its render watcher (because
   //    user watchers are created before the render watcher)
+
+  // 父组件销毁,跳过子组件的 watchers
   // 3. If a component is destroyed during a parent component's watcher run,
   //    its watchers can be skipped.
   
   // queue 队列排序
-  // watcher 按照 从小到大排序
+  // watcher 按照 id 从小到大排序
   queue.sort(function (a, b) { return a.id - b.id; });
+
 
   // do not cache length because more watchers might be pushed
   // as we run existing watchers
@@ -3398,6 +3448,7 @@ function flushSchedulerQueue () {
   }
 }
 
+// 触发更新的 hook
 function callUpdatedHooks (queue) {
   var i = queue.length;
   while (i--) {
@@ -3469,13 +3520,16 @@ var uid$1 = 0;
  * and fires callback when the expression value changes.
  * This is used for both the $watch() api and directives.
  */
+// watcher 解析表达式,收集依赖,并且在 expression 的值发生变化的时候,执行回调
+// $watch() 也用
+
 // new Watcher(vm, updateComponent, noop, null, true /* isRenderWatcher */);
 // 初次渲染
 
 var Watcher = function Watcher (
-  vm,
+  vm,       // vue 实例
   expOrFn,  // 函数
-  cb,
+  cb,       // 回调
   options,
   isRenderWatcher
 ) {
@@ -3537,6 +3591,7 @@ var Watcher = function Watcher (
  * Evaluate the getter, and re-collect dependencies.
  */
 Watcher.prototype.get = function get () {
+  // 把此时此刻这个 watcher 放到全局的 target
   pushTarget(this);
   var value;
   var vm = this.vm;
@@ -3570,6 +3625,7 @@ Watcher.prototype.get = function get () {
 /**
  * Add a dependency to this directive.
  */
+// 接收一个 dep 实例(依赖),存进自己的 dep 数组
 Watcher.prototype.addDep = function addDep (dep) {
   var id = dep.id;
   if (!this.newDepIds.has(id)) {
@@ -3584,6 +3640,8 @@ Watcher.prototype.addDep = function addDep (dep) {
 /**
  * Clean up for dependency collection.
  */
+
+//  清空自己的 dep 数组
 Watcher.prototype.cleanupDeps = function cleanupDeps () {
   var this$1 = this;
 
@@ -3608,6 +3666,8 @@ Watcher.prototype.cleanupDeps = function cleanupDeps () {
  * Subscriber interface.
  * Will be called when a dependency changes.
  */
+
+//  引发 watcher 的更新
 Watcher.prototype.update = function update () {
   /* istanbul ignore else */
   if (this.lazy) {
@@ -3624,6 +3684,8 @@ Watcher.prototype.update = function update () {
  * Scheduler job interface.
  * Will be called by the scheduler.
  */
+
+// 执行 watcher 的更新
 Watcher.prototype.run = function run () {
   if (this.active) {
     // 通过 get 取得值
@@ -3679,6 +3741,8 @@ Watcher.prototype.depend = function depend () {
 /**
  * Remove self from all dependencies' subscriber list.
  */
+
+// 把自己 watcher 实例 从依赖中移除
 Watcher.prototype.teardown = function teardown () {
     var this$1 = this;
 
@@ -3846,7 +3910,7 @@ function initData (vm) {
 
 function getData (data, vm) {
   // #7573 disable dep collection when invoking data getters
-  pushTarget();
+  pushTarget(); //这句会把当前全局 target 变为 undefined
   try {
     return data.call(vm, vm)
   } catch (e) {
@@ -3958,6 +4022,7 @@ function createComputedGetter (key) {
   }
 }
 
+// 初始化事件
 function initMethods (vm, methods) {
   var props = vm.$options.props;
   for (var key in methods) {
@@ -3986,6 +4051,8 @@ function initMethods (vm, methods) {
   }
 }
 
+
+// 初始化 watch
 function initWatch (vm, watch) {
   for (var key in watch) {
     var handler = watch[key];
@@ -4015,6 +4082,7 @@ function createWatcher (
   return vm.$watch(expOrFn, handler, options)
 }
 
+// 给 Vue 的原型 挂载一些属性
 function stateMixin (Vue) {
   // flow somehow has problems with directly declared definition object
   // when using Object.defineProperty, so we have to procedurally build up
@@ -4043,6 +4111,8 @@ function stateMixin (Vue) {
 
   // vm.$watch(expOrFn, handler, options)
   // key, handler, options
+
+  // 定义 Vue 原型上的 $watch 方法
   Vue.prototype.$watch = function (
     expOrFn,
     cb,
@@ -4067,6 +4137,7 @@ function stateMixin (Vue) {
 
 /*  */
 
+// 初始化 provide
 function initProvide (vm) {
   var provide = vm.$options.provide;
   if (provide) {
@@ -4076,6 +4147,7 @@ function initProvide (vm) {
   }
 }
 
+// 初始化 injects
 function initInjections (vm) {
   var result = resolveInject(vm.$options.inject, vm);
   if (result) {
@@ -4099,6 +4171,7 @@ function initInjections (vm) {
   }
 }
 
+// 初始化 resolveInhect
 function resolveInject (inject, vm) {
   if (inject) {
     // inject is :any because flow is not smart enough to figure out cached
@@ -4141,6 +4214,8 @@ function resolveInject (inject, vm) {
 /**
  * Runtime helper for rendering v-for lists.
  */
+
+// 辅助函数 渲染列表
 function renderList (
   val,
   render
@@ -4175,6 +4250,8 @@ function renderList (
 /**
  * Runtime helper for rendering <slot>
  */
+
+// 辅助函数 渲染 slot
 function renderSlot (
   name,
   fallback,
@@ -4224,6 +4301,8 @@ function renderSlot (
 /**
  * Runtime helper for resolving filters
  */
+
+ // 辅助函数 渲染 filters
 function resolveFilter (id) {
   return resolveAsset(this.$options, 'filters', id, true) || identity
 }
@@ -4238,6 +4317,7 @@ function isKeyNotMatch (expect, actual) {
   }
 }
 
+// 自定义键位别名
 /**
  * Runtime helper for checking keyCodes from config.
  * exposed as Vue.prototype._k
@@ -4265,6 +4345,7 @@ function checkKeyCodes (
 /**
  * Runtime helper for merging v-bind="object" into a VNode's data.
  */
+// 对 v:bind 是对象的处理
 function bindObjectProps (
   data,
   tag,
@@ -4319,6 +4400,8 @@ function bindObjectProps (
 /**
  * Runtime helper for rendering static trees.
  */
+
+//  静态树的处理
 function renderStatic (
   index,
   isInFor
@@ -4344,6 +4427,8 @@ function renderStatic (
  * Runtime helper for v-once.
  * Effectively it means marking the node as static with a unique key.
  */
+
+// v-once 的处理
 function markOnce (
   tree,
   index,
@@ -4477,6 +4562,7 @@ function FunctionalRenderContext (
 
 installRenderHelpers(FunctionalRenderContext.prototype);
 
+// 函数式组件
 function createFunctionalComponent (
   Ctor,
   propsData,
@@ -5648,15 +5734,24 @@ var patternTypes = [String, RegExp, Array];
 
 var KeepAlive = {
   name: 'keep-alive',
+
+  // 表明是一个抽象组件
+  // 组件实例建立父子关系的时候会被忽略
   abstract: true,
 
   props: {
+    // include 表示只有匹配的组件会被缓存
     include: patternTypes,
+
+    // exclude 表示任何匹配的组件都不会被缓存
     exclude: patternTypes,
+
+    // 指定 缓存的大小
     max: [String, Number]
   },
 
   created: function created () {
+    // 用于缓存已经创建过的 vnode
     this.cache = Object.create(null);
     this.keys = [];
   },
@@ -5672,6 +5767,7 @@ var KeepAlive = {
   mounted: function mounted () {
     var this$1 = this;
 
+    // 观测变化，执行 pruneCache 函数
     this.$watch('include', function (val) {
       pruneCache(this$1, function (name) { return matches(val, name); });
     });
@@ -5681,21 +5777,33 @@ var KeepAlive = {
   },
 
   render: function render () {
+    // 由于我们也是在 <keep-alive> 标签内部写 DOM，所以可以先获取到它的默认插槽
     var slot = this.$slots.default;
+
+    // 获取到第一个子节点
     var vnode = getFirstComponentChild(slot);
+
+    // <keep-alive> 只处理第一个子元素，所以一般和它搭配使用的有 component 动态组件或者是 router-view
     var componentOptions = vnode && vnode.componentOptions;
     if (componentOptions) {
       // check pattern
+      // 检查当前组件的名称
       var name = getComponentName(componentOptions);
       var ref = this;
+      // 获取当前组件的 include
       var include = ref.include;
+      // 获取当前组件的 exclude
       var exclude = ref.exclude;
       if (
         // not included
+        // 配置 include 且不匹配
         (include && (!name || !matches(include, name))) ||
+        
         // excluded
+        // 配置了 exclude 且匹配
         (exclude && name && matches(exclude, name))
       ) {
+        // 直接返回这个组件的 vnode
         return vnode
       }
 
@@ -5708,14 +5816,19 @@ var KeepAlive = {
         ? componentOptions.Ctor.cid + (componentOptions.tag ? ("::" + (componentOptions.tag)) : '')
         : vnode.key;
       if (cache[key]) {
+        // 如果命中缓存，直接从缓存中拿 vnode 的组件实例
         vnode.componentInstance = cache[key].componentInstance;
         // make current key freshest
+
+        // 调整 key 的顺序，放在最后
         remove(keys, key);
         keys.push(key);
       } else {
+        // 否则，放进缓存
         cache[key] = vnode;
         keys.push(key);
         // prune oldest entry
+        // 对缓存的处理，从缓存中删除第一个
         if (this.max && keys.length > parseInt(this.max)) {
           pruneCacheEntry(cache, keys[0], keys, this._vnode);
         }
@@ -6447,6 +6560,8 @@ function createPatchFunction (backend) {
       insertedVnodeQueue.push.apply(insertedVnodeQueue, vnode.data.pendingInsert);
       vnode.data.pendingInsert = null;
     }
+
+    // vnode.elm 缓存了 vnode 创建生成的 DOM 节点
     vnode.elm = vnode.componentInstance.$el;
     if (isPatchable(vnode)) {
       invokeCreateHooks(vnode, insertedVnodeQueue);
@@ -6479,6 +6594,7 @@ function createPatchFunction (backend) {
     }
     // unlike a newly created component,
     // a reactivated keep-alive component doesn't insert itself
+    // 最后通过执行 insert(parentElm, vnode.elm, refElm) 就把缓存的 DOM 对象直接插入到目标元素中
     insert(parentElm, vnode.elm, refElm);
   }
 
@@ -7613,8 +7729,10 @@ function genAssignmentCode (
   value,
   assignment
 ) {
+  // 对 v-model 对应的 value 做了解析
   var res = parseModel(value);
   if (res.key === null) {
+    // message=$event.target.value
     return (value + "=" + assignment)
   } else {
     return ("$set(" + (res.exp) + ", " + (res.key) + ", " + assignment + ")")
@@ -7734,6 +7852,8 @@ var warn$1;
 var RANGE_TOKEN = '__r';
 var CHECKBOX_RADIO_TOKEN = '__c';
 
+
+// 根据 AST 元素节点的不同情况去执行不同的逻辑
 function model (
   el,
   dir,
@@ -7757,6 +7877,7 @@ function model (
   }
 
   if (el.component) {
+    // 组件的 v-model
     genComponentModel(el, value, modifiers);
     // component v-model doesn't need extra runtime
     return false
@@ -7767,8 +7888,10 @@ function model (
   } else if (tag === 'input' && type === 'radio') {
     genRadioModel(el, value, modifiers);
   } else if (tag === 'input' || tag === 'textarea') {
+    // 如果 tag 是 input/textarea
     genDefaultModel(el, value, modifiers);
   } else if (!config.isReservedTag(tag)) {
+    // 组件的 v-model
     genComponentModel(el, value, modifiers);
     // component v-model doesn't need extra runtime
     return false
@@ -7885,13 +8008,23 @@ function genDefaultModel (
     valueExpression = "_n(" + valueExpression + ")";
   }
 
+  // 生成代码
+  // code => message=$event.target.value
   var code = genAssignmentCode(value, valueExpression);
   if (needCompositionGuard) {
     code = "if($event.target.composing)return;" + code;
   }
+  // 👆 code => if($event.target.composing)return;message=$event.target.value
 
+  // 通过修改 AST 元素，给 el 添加一个 prop
   addProp(el, 'value', ("(" + value + ")"));
+
+  // 添加事件处理，相当于是绑定了 input 事件
   addHandler(el, event, code, null, true);
+
+  // 👆 动态绑定了 input 的 value 指向了 messgae 变量，并且在触发 input 事件的时候去动态把 message 设置为目标值
+
+
   if (trim || number) {
     addHandler(el, 'blur', '$forceUpdate()');
   }
@@ -10250,7 +10383,10 @@ function processElement (element, options) {
   element.plain = !element.key && !element.attrsList.length;
 
   processRef(element);
+  
+  // 编译 slot
   processSlot(element);
+
   processComponent(element);
   for (var i = 0; i < transforms.length; i++) {
     element = transforms[i](element, options) || element;
@@ -10377,6 +10513,7 @@ function processOnce (el) {
 }
 
 function processSlot (el) {
+  // 当遇到 slot 标签的时候会给对应的 AST 元素节点添加 slotName 属性
   if (el.tag === 'slot') {
     el.slotName = getBindingAttr(el, 'name');
     if (process.env.NODE_ENV !== 'production' && el.key) {
@@ -10414,6 +10551,7 @@ function processSlot (el) {
       el.slotScope = slotScope;
     }
     var slotTarget = getBindingAttr(el, 'slot');
+    // 当解析到标签上有 slot 属性的时候，会给对应的 AST 元素节点添加 slotTarget
     if (slotTarget) {
       el.slotTarget = slotTarget === '""' ? '"default"' : slotTarget;
       // preserve slot as an attribute for native shadow DOM compat
@@ -11255,6 +11393,8 @@ function genData$2 (el, state) {
   }
   // slot target
   // only for non-scoped slots
+  // 对 slotTarget 的处理
+  // 会给 data 添加一个 slot 属性，并指向 slotTarget
   if (el.slotTarget && !el.slotScope) {
     data += "slot:" + (el.slotTarget) + ",";
   }
