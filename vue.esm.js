@@ -4488,7 +4488,7 @@ function installRenderHelpers (target) {
   target._o = markOnce;
   target._n = toNumber;
   target._s = toString;
-  target._l = renderList;
+  target._l = renderList;  // renderList 渲染列表
   target._t = renderSlot;
   target._q = looseEqual;
   target._i = looseIndexOf;
@@ -4496,8 +4496,8 @@ function installRenderHelpers (target) {
   target._f = resolveFilter;
   target._k = checkKeyCodes;
   target._b = bindObjectProps;
-  target._v = createTextVNode;
-  target._e = createEmptyVNode;
+  target._v = createTextVNode;  // createTextVNode 创建文本 VNode
+  target._e = createEmptyVNode;  // createEmptyVNode创建空的 VNode
   target._u = resolveScopedSlots;
   target._g = bindObjectListeners;
 }
@@ -9825,6 +9825,9 @@ var isNonPhrasingTag = makeMap(
  * http://erik.eae.net/simplehtmlparser/simplehtmlparser.js
  */
 
+//  用来解析模板的正则表达式
+// 匹配注释节点、文档类型节点、开始闭合标签等
+
 // Regular Expressions for parsing tags and attributes
 var attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/;
 // could use https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-QName
@@ -9868,6 +9871,11 @@ function decodeAttr (value, shouldDecodeNewlines) {
   return value.replace(re, function (match) { return decodingMap[match]; })
 }
 
+// 解析 HTML 模板
+// 循环解析 template, 用正则做各种匹配
+// 对于不同情况分别进行不同的处理，直到整个 template 被解析完毕
+// 在匹配的过程中会利用 advance 函数不断前进整个模板字符串，直到字符串末尾
+
 function parseHTML (html, options) {
   var stack = [];
   var expectHTML = options.expectHTML;
@@ -9882,6 +9890,7 @@ function parseHTML (html, options) {
       var textEnd = html.indexOf('<');
       if (textEnd === 0) {
         // Comment:
+        // 如果匹配到注释节点 文档类型节点
         if (comment.test(html)) {
           var commentEnd = html.indexOf('-->');
 
@@ -9889,6 +9898,7 @@ function parseHTML (html, options) {
             if (options.shouldKeepComment) {
               options.comment(html.substring(4, commentEnd));
             }
+            // 注释节点，前进到末尾位置
             advance(commentEnd + 3);
             continue
           }
@@ -9899,6 +9909,7 @@ function parseHTML (html, options) {
           var conditionalEnd = html.indexOf(']>');
 
           if (conditionalEnd >= 0) {
+            // 条件注释节点，前进到末尾位置
             advance(conditionalEnd + 2);
             continue
           }
@@ -9907,21 +9918,28 @@ function parseHTML (html, options) {
         // Doctype:
         var doctypeMatch = html.match(doctype);
         if (doctypeMatch) {
+          // 文档类型节点,前进到 自身长度距离
           advance(doctypeMatch[0].length);
           continue
         }
 
         // End tag:
+        // 结束标签
         var endTagMatch = html.match(endTag);
         if (endTagMatch) {
           var curIndex = index;
+          // 前进到闭合标签末尾
           advance(endTagMatch[0].length);
+          // 执行 parseEndTag 方法对闭合标签做解析
           parseEndTag(endTagMatch[1], curIndex, index);
           continue
         }
 
         // Start tag:
+        // 通过 parseStartTag 解析开始标签
         var startTagMatch = parseStartTag();
+        // 拿到 match
+
         if (startTagMatch) {
           handleStartTag(startTagMatch);
           if (shouldIgnoreFirstNewline(lastTag, html)) {
@@ -9931,6 +9949,7 @@ function parseHTML (html, options) {
         }
       }
 
+      // 文本
       var text = (void 0), rest = (void 0), next = (void 0);
       if (textEnd >= 0) {
         rest = html.slice(textEnd);
@@ -9994,12 +10013,14 @@ function parseHTML (html, options) {
   // Clean up any remaining tags
   parseEndTag();
 
+  // 前进 n 步
   function advance (n) {
     index += n;
-    html = html.substring(n);
+    html = html.substring(n); // 提取到末尾
   }
 
   function parseStartTag () {
+    // 通过正则表达式 startTagOpen 匹配到开始标签
     var start = html.match(startTagOpen);
     if (start) {
       var match = {
@@ -10008,6 +10029,7 @@ function parseHTML (html, options) {
         start: index
       };
       advance(start[0].length);
+      // 环去匹配开始标签中的属性并添加到 match.attrs 中
       var end, attr;
       while (!(end = html.match(startTagClose)) && (attr = html.match(attribute))) {
         advance(attr[0].length);
@@ -10147,19 +10169,19 @@ var platformMustUseProp;
 var platformGetTagNamespace;
 
 
-
+// 每一个 AST 元素就是一个普通的 JavaScript 对象
 function createASTElement (
   tag,
   attrs,
   parent
 ) {
   return {
-    type: 1,
-    tag: tag,
-    attrsList: attrs,
-    attrsMap: makeAttrsMap(attrs),
-    parent: parent,
-    children: []
+    type: 1,  // AST 元素类型
+    tag: tag,  // 标签名
+    attrsList: attrs,  // 属性列表
+    attrsMap: makeAttrsMap(attrs),  // 属性映射表
+    parent: parent,  // 父的 AST 元素
+    children: []  // 字 AST 元素集合
   }
 }
 
@@ -10169,8 +10191,8 @@ function createASTElement (
 // 模板编译成 抽象语法树
 // options 是和平台相关的一些配置
 function parse (
-  template,
-  options
+  template,  // 模板字符串
+  options    // 平台相关的配置
 ) {
   warn$2 = options.warn || baseWarn;
 
@@ -10226,6 +10248,8 @@ function parse (
     shouldDecodeNewlines: options.shouldDecodeNewlines,
     shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
     shouldKeepComment: options.comments,
+
+    // 处理开始标签
     start: function start (tag, attrs, unary) {
       // check namespace.
       // inherit parent ns if there is one
@@ -10237,11 +10261,15 @@ function parse (
         attrs = guardIESVGBug(attrs);
       }
 
+      // 通过 createASTElement 方法去创建一个 AST 元素
+      // 返回 AST 对象
       var element = createASTElement(tag, attrs, currentParent);
       if (ns) {
         element.ns = ns;
       }
 
+
+      // 处理 AST 对象
       if (isForbiddenTag(element) && !isServerRendering()) {
         element.forbidden = true;
         process.env.NODE_ENV !== 'production' && warn$2(
@@ -10269,6 +10297,7 @@ function parse (
         processRawAttrs(element);
       } else if (!element.processed) {
         // structural directives
+        // 从元素中拿到 v-for 指令的内容
         processFor(element);
         processIf(element);
         processOnce(element);
@@ -10276,6 +10305,8 @@ function parse (
         processElement(element, options);
       }
 
+
+      // 👇 AST 树管理
       function checkRootConstraints (el) {
         if (process.env.NODE_ENV !== 'production') {
           if (el.tag === 'slot' || el.tag === 'template') {
@@ -10332,6 +10363,7 @@ function parse (
       }
     },
 
+    // 处理闭合标签
     end: function end () {
       // remove trailing whitespace
       var element = stack[stack.length - 1];
@@ -10345,6 +10377,7 @@ function parse (
       closeElement(element);
     },
 
+    // 处理文本内容
     chars: function chars (text) {
       if (!currentParent) {
         if (process.env.NODE_ENV !== 'production') {
@@ -10390,6 +10423,8 @@ function parse (
         }
       }
     },
+
+
     comment: function comment (text) {
       currentParent.children.push({
         type: 3,
@@ -10460,6 +10495,7 @@ function processRef (el) {
   }
 }
 
+// 从元素中拿到 v-for 指令的内容，然后分别解析出 for、alias、iterator1、iterator2 等属性的值添加到 AST 的元素上
 function processFor (el) {
   var exp;
   if ((exp = getAndRemoveAttr(el, 'v-for'))) {
@@ -10495,6 +10531,9 @@ function parseFor (exp) {
   return res
 }
 
+
+// 从元素中拿 v-if 指令的内容，如果拿到则给 AST 元素添加 if 属性和 ifConditions 属性
+// 否则尝试拿 v-else 指令及 v-else-if 指令的内容，如果拿到则给 AST 元素分别添加 else 和 elseif 属性
 function processIf (el) {
   var exp = getAndRemoveAttr(el, 'v-if');
   if (exp) {
@@ -10924,12 +10963,15 @@ var genStaticKeysCached = cached(genStaticKeys$1);
  * Goal of the optimizer: walk the generated template AST tree
  * and detect sub-trees that are purely static, i.e. parts of
  * the DOM that never needs to change.
+ * 找到纯静态节点
  *
  * Once we detect these sub-trees, we can:
  *
  * 1. Hoist them into constants, so that we no longer need to
  *    create fresh nodes for them on each re-render;
+ * re-render 的时候不在重新生成新的 nodes
  * 2. Completely skip them in the patching process.
+ * patch 跳过 diff
  */
 
 // 优化 AST
@@ -10956,6 +10998,7 @@ function genStaticKeys$1 (keys) {
   )
 }
 
+// 标记静态节点
 function markStatic$1 (node) {
   // isStatic 是对一个 AST 元素节点是否是静态的判断
   node.static = isStatic(node);
@@ -10985,6 +11028,7 @@ function markStatic$1 (node) {
       for (var i$1 = 1, l$1 = node.ifConditions.length; i$1 < l$1; i$1++) {
         var block = node.ifConditions[i$1].block;
         markStatic$1(block);
+        // 一旦子节点有不是 static 的情况，则它的父节点的 static 均变成 false
         if (!block.static) {
           node.static = false;
         }
@@ -11243,19 +11287,22 @@ var CodegenState = function CodegenState (options) {
 };
 
 
-
+// 生成代码
 function generate (
   ast,
   options
 ) {
   var state = new CodegenState(options);
+  // 生成 code
   var code = ast ? genElement(ast, state) : '_c("div")';
+  // 用 with 包裹起来
   return {
     render: ("with(this){return " + code + "}"),
     staticRenderFns: state.staticRenderFns
   }
 }
 
+// 判断当前 AST 元素节点的属性执行不同的代码生成函数
 function genElement (el, state) {
   if (el.staticRoot && !el.staticProcessed) {
     return genStatic(el, state)
@@ -11322,6 +11369,7 @@ function genOnce (el, state) {
   }
 }
 
+// 生成 v-if 的代码函数
 function genIf (
   el,
   state,
@@ -11359,6 +11407,7 @@ function genIfConditions (
   }
 }
 
+// 生成 v-for 的代码函数
 function genFor (
   el,
   state,
@@ -11787,6 +11836,7 @@ function checkExpression (exp, text, errors) {
 /*  */
 
 function createFunction (code, errors) {
+  // 生成执行代码
   try {
     return new Function(code)
   } catch (err) {
@@ -11798,6 +11848,7 @@ function createFunction (code, errors) {
 function createCompileToFunctionFn (compile) {
   var cache = Object.create(null);
 
+  // 这是 compileToFunctions 的最终定义
   return function compileToFunctions (
     template, // 编译模板
     options,  // 编译配置
@@ -11884,7 +11935,13 @@ function createCompileToFunctionFn (compile) {
 
 /*  */
 
+// 接收一个函数作为参数
+// 真正的编译都在在这个 参数(函数)里面执行的
 function createCompilerCreator (baseCompile) {
+  // 返回一个 createCompiler 方法
+  // createCompiler 方法接收一个 baseOptions 作为参数,返回一个对象 {compile, compileToFunctions}
+  // 其中返回的 compileToFunctions 方法就是 $mount 中的 生成 render 函数的 compileToFunctions 方法
+  // compileToFunctions 由 createCompileToFunctionFn 函数生成
   return function createCompiler (baseOptions) {
     function compile (
       template,
@@ -11897,6 +11954,7 @@ function createCompilerCreator (baseCompile) {
         (tip ? tips : errors).push(msg);
       };
 
+      // 处理配置参数
       if (options) {
         // merge custom modules
         if (options.modules) {
@@ -11919,6 +11977,7 @@ function createCompilerCreator (baseCompile) {
       }
 
       // 执行编译
+      // 使用传进来的 baseCompile 方法进行编译
       var compiled = baseCompile(template, finalOptions);
 
       if (process.env.NODE_ENV !== 'production') {
@@ -11941,6 +12000,7 @@ function createCompilerCreator (baseCompile) {
 // `createCompilerCreator` allows creating compilers that use alternative
 // parser/optimizer/codegen, e.g the SSR optimizing compiler.
 // Here we just export a default compiler using the default parts.
+// createCompilerCreator 
 var createCompiler = createCompilerCreator(function baseCompile (
   template,
   options
@@ -11953,7 +12013,8 @@ var createCompiler = createCompilerCreator(function baseCompile (
     optimize(ast, options);
   }
 
-  // 生成代码
+  // 根据 AST 生成代码
+  // 最终会把 code.render 生成执行代码
   var code = generate(ast, options);
   return {
     ast: ast,
@@ -11963,8 +12024,10 @@ var createCompiler = createCompilerCreator(function baseCompile (
 });
 
 /*  */
-
+// createCompiler 接收一个编译配置参数,生成 compileToFunctions 方法
 var ref$1 = createCompiler(baseOptions);
+
+// compileToFunctions 实际上是 createCompiler 方法的返回值
 var compileToFunctions = ref$1.compileToFunctions;
 
 /*  */
@@ -12060,6 +12123,7 @@ Vue.prototype.$mount = function (
       }
 
       // 开始编译，template 编译出 render 函数
+      // compileToFunctions 把模板 template 编译生成 render 以及 staticRenderFns
       var ref = compileToFunctions(template, {
         shouldDecodeNewlines: shouldDecodeNewlines,
         shouldDecodeNewlinesForHref: shouldDecodeNewlinesForHref,
