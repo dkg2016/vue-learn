@@ -184,7 +184,9 @@ function hasOwn (obj, key) {
  * Create a cached version of a pure function.
  */
 // 缓存一次函数
+// 闭包
 function cached (fn) {
+  // cash 是一个空对象
   var cache = Object.create(null);
   return (function cachedFn (str) {
     var hit = cache[str];
@@ -199,8 +201,10 @@ function cached (fn) {
 // 短横线变成驼峰
 // replace 方法第二个参数，可以是一个函数
 // 这个函数的参数依次是匹配到的字符，第一个匹配的索引位置，以及原字符串
-var camelizeRE = /-(\w)/g;
+var camelizeRE = /-(\w)/g; // 匹配 '-\w'
 var camelize = cached(function (str) {
+  // - 是匹配到的整个
+  // c 是第一个匹配中的第一个子表达式
   return str.replace(camelizeRE, function (_, c) { return c ? c.toUpperCase() : ''; })
 });
 
@@ -209,13 +213,17 @@ var camelize = cached(function (str) {
  */
 // 首字母大写
 var capitalize = cached(function (str) {
+  // slice 没有第二个参数，默认到末尾
   return str.charAt(0).toUpperCase() + str.slice(1)
 });
 
 /**
  * Hyphenate a camelCase string.
  */
-var hyphenateRE = /\B([A-Z])/g;
+// 连字符
+
+// replacement 中的 $ 字符具有特定的含义，它说明从模式匹配得到的字符串将用于替换
+var hyphenateRE = /\B([A-Z])/g; // 非单词边界的[A-Z]
 var hyphenate = cached(function (str) {
   return str.replace(hyphenateRE, '-$1').toLowerCase()
 });
