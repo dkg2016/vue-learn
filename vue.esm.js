@@ -238,16 +238,20 @@ var hyphenate = cached(function (str) {
 
 /* istanbul ignore next */
 // bind 函数的 polyfill
+// 将 fn 的 this 绑定到 ctx 上
 function polyfillBind (fn, ctx) {
+  // a 是 fn 传入的参数
+  // arguments 也是 fn 传入的参数
   function boundFn (a) {
     var l = arguments.length;
     return l
       ? l > 1
-        ? fn.apply(ctx, arguments)
-        : fn.call(ctx, a)
+        ? fn.apply(ctx, arguments) // 多个参数
+        : fn.call(ctx, a)          // 一个参数
       : fn.call(ctx)
   }
 
+  // 维护函数的 length 属性，是期待的参数个数
   boundFn._length = fn.length;
   return boundFn
 }
@@ -264,7 +268,8 @@ var bind = Function.prototype.bind
  * Convert an Array-like object to a real Array.
  */
 // 类数组转化为真数组
-
+// 可以认为是 Array.from() 的 polyfill
+// start 参数指明从哪一项开始
 function toArray (list, start) {
   start = start || 0;
   var i = list.length - start;
@@ -281,6 +286,7 @@ function toArray (list, start) {
  * Mix properties into target object.
  */
 // 将来源对象属性赋值到目标对象
+// in 操作符会遍历原型
 function extend (to, _from) {
   for (var key in _from) {
     to[key] = _from[key];
@@ -291,7 +297,7 @@ function extend (to, _from) {
 /**
  * Merge an Array of Objects into a single Object.
  */
-// 将数组中的对象属性合并到一个对象
+// 将数组中的对象的属性合并到一个对象
 function toObject (arr) {
   var res = {};
   for (var i = 0; i < arr.length; i++) {
@@ -307,21 +313,26 @@ function toObject (arr) {
  * Stubbing args to make Flow happy without leaving useless transpiled code
  * with ...rest (https://flow.org/blog/2017/05/07/Strict-Function-Call-Arity/)
  */
+// 返回 undefined 的函数
 function noop (a, b, c) {}
 
 /**
  * Always return false.
  */
+// 返回 false 的函数
 var no = function (a, b, c) { return false; };
 
 /**
  * Return same value
  */
+
+// 返回参数的函数
 var identity = function (_) { return _; };
 
 /**
  * Generate a static keys string from compiler modules.
  */
+// 从编译模块中，生成一个固定的 key
 function genStaticKeys (modules) {
   return modules.reduce(function (keys, m) {
     return keys.concat(m.staticKeys || [])
