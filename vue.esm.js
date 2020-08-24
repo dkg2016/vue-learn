@@ -4,7 +4,7 @@
  * Released under the MIT License.
  */
 /*  */
-
+// 不能再修改
 var emptyObject = Object.freeze({});
 
 // these helpers produces better vm code in JS engines due to their
@@ -17,10 +17,12 @@ function isDef (v) {
   return v !== undefined && v !== null
 }
 
+// 严格等于
 function isTrue (v) {
   return v === true
 }
 
+// 严格等于
 function isFalse (v) {
   return v === false
 }
@@ -28,6 +30,9 @@ function isFalse (v) {
 /**
  * Check if value is primitive
  */
+// 检查是否简单类型，不包括 null 和 undefined
+// 简单类型可以使用 typeof 判断
+// typeof 还可以判断出函数类型
 function isPrimitive (value) {
   return (
     typeof value === 'string' ||
@@ -43,6 +48,8 @@ function isPrimitive (value) {
  * Objects from primitive values when we know the value
  * is a JSON-compliant type.
  */
+// 快速判断是 JSON 一致的Object 类型
+// 注意排除 null
 function isObject (obj) {
   return obj !== null && typeof obj === 'object'
 }
@@ -51,8 +58,12 @@ function isObject (obj) {
  * Get the raw type string of a value e.g. [object Object]
  */
 // 获取原生类型
+// 最安全有效的获取变量类型的方式
 var _toString = Object.prototype.toString;
 
+// slice(start, end) 方法会截取指定的一部分,包括 start
+// -1 表示从末尾开始计算第二位
+// 即索引 8(包括) 到字符窜倒数第二位
 function toRawType (value) {
   return _toString.call(value).slice(8, -1)
 }
@@ -61,7 +72,7 @@ function toRawType (value) {
  * Strict object type check. Only returns true
  * for plain JavaScript objects.
  */
-// 比较严格的对象判断
+// 严格的对象判断
 function isPlainObject (obj) {
   return _toString.call(obj) === '[object Object]'
 }
@@ -76,18 +87,27 @@ function isRegExp (v) {
  */
 // 是否合法数组索引
 function isValidArrayIndex (val) {
+  // 字符化
+  // parseFloat，解析一个参数，并返回一个浮点数
+  // 整数的化，只会返回整数部分
   var n = parseFloat(String(val));
+  // 正数，兼容 25.00 这种，有限数值
   return n >= 0 && Math.floor(n) === n && isFinite(val)
 }
 
 /**
  * Convert a value to a string that is actually rendered.
  */
+// 字符串化
+
+// JSON.stringify(value[, replacer [, space]])
+// replacer，如果该参数是一个函数，则在序列化过程中，被序列化的值的每个属性都会经过该函数的转换和处理；如果该参数是一个数组，则只有包含在这个数组中的属性名才会被序列化到最终的 JSON 字符串中；如果该参数为 null 或者未提供，则对象所有的属性都会被序列化。
+// space，指定缩进用的空白字符串，用于美化输出（pretty-print）；如果参数是个数字，它代表有多少的空格；上限为10。该值若小于1，则意味着没有空格；如果该参数为字符串（当字符串长度超过10个字母，取其前10个字母），该字符串将被作为空格；如果该参数没有提供（或者为 null），将没有空格。
 function toString (val) {
-  return val == null
+  return val == null // 兼容了 undefined 和 null,0,false,'',和 null 双等都是 false
     ? ''
     : typeof val === 'object'
-      ? JSON.stringify(val, null, 2) // 使用两个空格缩进
+      ? JSON.stringify(val, null, 2) // 使用两个空格缩进， 如果不能有效JSON化，则调用 String
       : String(val)
 }
 
@@ -95,6 +115,7 @@ function toString (val) {
  * Convert a input value to a number for persistence.
  * If the conversion fails, return original string.
  */
+// 尝试数字化，如果失败，返回原值
 function toNumber (val) {
   var n = parseFloat(val);
   return isNaN(n) ? val : n
@@ -105,11 +126,15 @@ function toNumber (val) {
  * is in that map.
  */
 // 根据传入的参数,生成一个map,并返回一个函数,用以检查某个值是够属于这个 map
+// 闭包
+// 返回的函数持有对内部 map 的引用，用于判断将来接收的 val 是否在 map 中
 function makeMap (
   str,
   expectsLowerCase  // 是否期待小写
 ) {
+  // 没有原型链的空对象
   var map = Object.create(null);
+
   var list = str.split(',');
   for (var i = 0; i < list.length; i++) {
     map[list[i]] = true;
@@ -135,7 +160,7 @@ var isReservedAttribute = makeMap('key,ref,slot,slot-scope,is');
 /**
  * Remove an item from an array
  */
-// 从数组一项
+// 从数组移除一项
 function remove (arr, item) {
   if (arr.length) {
     var index = arr.indexOf(item);
