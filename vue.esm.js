@@ -346,9 +346,11 @@ function genStaticKeys (modules) {
 // 是否松散相等，
 // 例如，如果是对象，是否具有相同属性
 function looseEqual (a, b) {
+  // 简单类型，直接判断是否严格等于
   if (a === b) { return true }
   var isObjectA = isObject(a);
   var isObjectB = isObject(b);
+  // a 和 b 都是对象（{}, []）
   if (isObjectA && isObjectB) {
     try {
       var isArrayA = Array.isArray(a);
@@ -376,12 +378,14 @@ function looseEqual (a, b) {
     }
   } else if (!isObjectA && !isObjectB) {
     // 如果都不是对象，就转成字符串比较
+    // 可以比较函数
     return String(a) === String(b)
   } else {
     return false
   }
 }
 
+// 寻找某一项在一个数组中的索引位置
 function looseIndexOf (arr, val) {
   for (var i = 0; i < arr.length; i++) {
     if (looseEqual(arr[i], val)) { return i }
@@ -393,6 +397,7 @@ function looseIndexOf (arr, val) {
  * Ensure a function is called only once.
  */
 // 确保函数只调用一次
+// 使用了闭包
 function once (fn) {
   var called = false;
   return function () {
@@ -405,7 +410,7 @@ function once (fn) {
 
 var SSR_ATTR = 'data-server-rendered';
 
-// 内置类型
+// Vue 内置类型
 var ASSET_TYPES = [
   'component',
   'directive',
@@ -413,7 +418,7 @@ var ASSET_TYPES = [
 ];
 
 
-// 生命周期
+// 生命周期数组
 var LIFECYCLE_HOOKS = [
   'beforeCreate',
   'created',
@@ -525,6 +530,7 @@ var config = ({
  */
 // 检查一个字符是否以 $ 或 _ 开头
 function isReserved (str) {
+  // charCodeAt() 方法可返回指定位置的字符的 Unicode 编码。这个返回值是 0 - 65535 之间的整数
   var c = (str + '').charCodeAt(0);
   return c === 0x24 || c === 0x5F
 }
@@ -532,7 +538,7 @@ function isReserved (str) {
 /**
  * Define a property.
  */
-// 定义一个属性
+// 使用 defineProperty 定义一个属性
 function def (obj, key, val, enumerable) {
   Object.defineProperty(obj, key, {
     value: val,
@@ -545,6 +551,7 @@ function def (obj, key, val, enumerable) {
 /**
  * Parse simple path.
  */
+// ？？？？？？
 var bailRE = /[^\w.$]/;
 function parsePath (path) {
   if (bailRE.test(path)) {
@@ -563,6 +570,7 @@ function parsePath (path) {
 /*  */
 
 // can we use __proto__?
+// 检测原型链是否可用
 var hasProto = '__proto__' in {};
 
 // 浏览器环境
@@ -571,7 +579,10 @@ var inBrowser = typeof window !== 'undefined';
 var inWeex = typeof WXEnvironment !== 'undefined' && !!WXEnvironment.platform;
 var weexPlatform = inWeex && WXEnvironment.platform.toLowerCase();
 var UA = inBrowser && window.navigator.userAgent.toLowerCase();
+// 是否 ie
 var isIE = UA && /msie|trident/.test(UA);
+
+// 是否 ie9
 var isIE9 = UA && UA.indexOf('msie 9.0') > 0;
 var isEdge = UA && UA.indexOf('edge/') > 0;
 var isAndroid = (UA && UA.indexOf('android') > 0) || (weexPlatform === 'android');
@@ -579,6 +590,7 @@ var isIOS = (UA && /iphone|ipad|ipod|ios/.test(UA)) || (weexPlatform === 'ios');
 var isChrome = UA && /chrome\/\d+/.test(UA) && !isEdge;
 
 // Firefox has a "watch" function on Object.prototype...
+// Firefox 中，函数有原生的 watch 方法
 var nativeWatch = ({}).watch;
 
 var supportsPassive = false;
@@ -622,7 +634,7 @@ function isNative (Ctor) {
   return typeof Ctor === 'function' && /native code/.test(Ctor.toString())
 }
 
-// 是否原生支持 Symbol
+// 是否原生支持 Symbol 和 Reflect
 var hasSymbol =
   typeof Symbol !== 'undefined' && isNative(Symbol) &&
   typeof Reflect !== 'undefined' && isNative(Reflect.ownKeys);
@@ -633,6 +645,7 @@ var _Set;
 /* istanbul ignore if */ // $flow-disable-line
 if (typeof Set !== 'undefined' && isNative(Set)) {
   // use native Set when available.
+  // 使用原生 Set
   _Set = Set;
 } else {
   // a non-standard Set polyfill that only works with primitive keys.
