@@ -880,10 +880,13 @@ prototypeAccessors.child.get = function () {
   return this.componentInstance
 };
 
+// defineProperties,直接在一个对象上定义(一个或多个)新的属性或修改现有属性，并返回该对象
 Object.defineProperties( VNode.prototype, prototypeAccessors );
 
 // 创建一个空 VNode 节点/一个注释节点
 var createEmptyVNode = function (text) {
+  // undefined可以被重写
+  // void 运算符能对给定的表达式进行求值，然后返回 undefined
   if ( text === void 0 ) text = '';
 
   var node = new VNode();
@@ -935,7 +938,8 @@ function cloneVNode (vnode) {
  */
 
 var arrayProto = Array.prototype;
-// 生成一个对象，对象的原项链是原生数组的 prototype
+
+// 生成一个对象，其原项链是原生数组的 prototype
 var arrayMethods = Object.create(arrayProto);
 
 var methodsToPatch = [
@@ -953,8 +957,9 @@ var methodsToPatch = [
  */
 methodsToPatch.forEach(function (method) {
   // cache original method
-  // 获取到原始方法
+  // 获取到数组原型上的原始方法
   var original = arrayProto[method];
+
   // 给 arrayMethods 这个对象定义方法
   // 利用了原型链的遮蔽效应
   def(arrayMethods, method, function mutator () {
@@ -965,22 +970,25 @@ methodsToPatch.forEach(function (method) {
 
     // 调用原生方法到返回值
     var result = original.apply(this, args);
+
     var ob = this.__ob__;
     var inserted;
     switch (method) {
       case 'push':
       case 'unshift':
-        inserted = args;
+        inserted = args; // 拿到添加的元素
         break
       case 'splice':
-        inserted = args.slice(2);
+        inserted = args.slice(2); // splice 方法中要添加的元素
         break
     }
-    // 因此可以看出,如果是对数组进行了 push,unshift,splice操作
+
+    // 对添加的属性进行了观测
+    // 因此可以看出,如果是对数组进行了 push, unshift, splice操作
     // 会重新触发观测,变成响应式
     if (inserted) { ob.observeArray(inserted); }
-    // notify change
 
+    // notify change
     // 触发更新
     ob.dep.notify();
     return result
@@ -990,12 +998,14 @@ methodsToPatch.forEach(function (method) {
 /*  */
 
 // 获取新定义的数组方法
+// getOwnPropertyNames，返回一个由指定对象的所有自身属性的属性名（包括不可枚举属性但不包括Symbol值作为名称的属性）组成的数组
 var arrayKeys = Object.getOwnPropertyNames(arrayMethods);
 
 /**
  * In some cases we may want to disable observation inside a component's
  * update computation.
  */
+// 某些情况下，disable 观测一个组件的更新计算
 var shouldObserve = true;
 
 // 切换全局变量 shouldObserve
@@ -1010,8 +1020,8 @@ function toggleObserving (value) {
  * collect dependencies and dispatch updates.
  */
 
-// 观察者类被加到每个观测对象，一旦加类 观察者后，观察者就会把目标对象的属性变成响应式
-// 搜集依赖，派发更新
+// 观察者类被加到每个观测对象，一旦添加后，观察者就会把目标对象的属性变成响应式
+// 收集依赖，派发更新
 
 // 给对象的属性添加 getter 和 setter
 // ob = new Observer(value)
