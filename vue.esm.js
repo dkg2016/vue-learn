@@ -776,19 +776,20 @@ var uid = 0;
 // Dep 实际上就是对 Watcher 的一种管理
 
 var Dep = function Dep () {
+  
   // 这是此发布者的 id
   this.id = uid++;
 
-  // subs 是 watcher 的数组
+  // subs 是 存放watcher 的数组
   this.subs = [];
 };
 
-// add 方法,用于将 watcher 放入自己的 subs 管理
+// add 方法,用于将一个 watcher 放入自己的 subs 管理
 Dep.prototype.addSub = function addSub (sub) {
   this.subs.push(sub);
 };
 
-// remove 方法,清除自己 subs 下的一个 watcher
+// remove 方法, remove 自己 subs 下的一个 watcher
 Dep.prototype.removeSub = function removeSub (sub) {
   remove(this.subs, sub);
 };
@@ -822,6 +823,7 @@ Dep.prototype.notify = function notify () {
 Dep.target = null;
 var targetStack = [];
 
+// push 一次会更新当前的，存下上一个
 function pushTarget (_target) {
   // 实际上就是把 Dep.target 赋值为当前的渲染 watcher，并压栈
   if (Dep.target) { targetStack.push(Dep.target); }
@@ -985,7 +987,7 @@ methodsToPatch.forEach(function (method) {
 
     // 对添加的属性进行了观测
     // 因此可以看出,如果是对数组进行了 push, unshift, splice操作
-    // 会重新触发观测,变成响应式
+    // 会对添加的元素进行响应式观测
     if (inserted) { ob.observeArray(inserted); }
 
     // notify change
@@ -1005,7 +1007,7 @@ var arrayKeys = Object.getOwnPropertyNames(arrayMethods);
  * In some cases we may want to disable observation inside a component's
  * update computation.
  */
-// 某些情况下，disable 观测一个组件的更新计算
+// 某些情况下，disable 掉一个组件的更新计算
 var shouldObserve = true;
 
 // 切换全局变量 shouldObserve
@@ -1042,14 +1044,14 @@ var Observer = function Observer (value) {
 
   // 把自身实例添加到数据对象 value 的 __ob__ 属性上
   def(value, '__ob__', this);
-  // 从此，可以根据一个对象是否具有 __ob__ 属性，判断是否是响应式对象
+  // 因此，可以根据一个对象是否具有 __ob__ 属性，判断是否是响应式对象
 
   // 这里厉害啦
-  // 要 observe 一个数组的情况
-  // augment 一般就是 protoAugment
-  // protoAugment 将 arrayMethods 将 value 的原型指向 arrayMethods
+  // 如果 observe 一个数组
+  // augment 在浏览器环境下，就是 protoAugment
+  // protoAugment 将 value 的原型指向 arrayMethods
   // 即 数组类型的 value 的 __proto__属性， 是 arrayMethods
-  // arrayMethods 也是一个对象,里面重写了数组的一些方法
+  // arrayMethods 也是一个对象,里面重写了数组的一些方法（可以触发重新观测）
   // 同时 arrayMethods 的原型是 Array.prototype
   if (Array.isArray(value)) {
     var augment = hasProto
@@ -1136,7 +1138,7 @@ function observe (value, asRootData) {
   }
   var ob;
 
-  // 已经是 Observer 的实例，直接返回
+  // 已经是 Observer 的实例，直接返回 __ob__
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__;
   } else if (
