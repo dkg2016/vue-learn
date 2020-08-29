@@ -1180,6 +1180,7 @@ function defineReactive (
 
   // 获取该对象属性的属性描述符
   var property = Object.getOwnPropertyDescriptor(obj, key);
+
   // 如果是不可配置的，就直接返回
   // 可用于冻结对象，不做响应式
   if (property && property.configurable === false) {
@@ -1187,10 +1188,12 @@ function defineReactive (
   }
 
   // cater for pre-defined getter/setters
+  // 若 该属性之前已经定义了的 getter
   // 获取属性的 get
   var getter = property && property.get;
 
-  // Observer.prototype.walk 的时候，arguments 长度是 2
+  // 执行 walk 的时候，调用了 defineReactive 函数：defineReactive(obj, keys[i]); 
+  // arguments 长度是 2
   if (!getter && arguments.length === 2) {
     val = obj[key];
   }
@@ -1209,8 +1212,8 @@ function defineReactive (
 
   // val 是普通值，进行响应式绑定
   Object.defineProperty(obj, key, {
-    enumerable: true,
-    configurable: true,
+    enumerable: true,   // 可遍历出
+    configurable: true, // 可配置
 
     // get 部分的逻辑
     get: function reactiveGetter () {
@@ -1237,6 +1240,7 @@ function defineReactive (
       return value
     },
     set: function reactiveSetter (newVal) {
+      // 首先尝试调用 val 的 getter
       var value = getter ? getter.call(obj) : val;
       /* eslint-disable no-self-compare */
       if (newVal === value || (newVal !== newVal && value !== value)) {
@@ -1252,6 +1256,8 @@ function defineReactive (
         val = newVal;
       }
       childOb = !shallow && observe(newVal);
+
+      // 触发更新
       dep.notify();
     }
   });
@@ -1262,8 +1268,8 @@ function defineReactive (
  * triggers change notification if the property doesn't
  * already exist.
  */
-// 给 data 添加新的响应式属性
-// target 可能是数组或者是普通对象
+// 给 data 添加新的 响应式 属性
+// target 可能是 数组 或者是 普通对象
 // key 代表的是数组的下标或者是对象的键值
 // val 代表添加的值
 // 这就是 Vue.set 方法，即 this.$set
@@ -1278,7 +1284,8 @@ function set (target, key, val) {
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     // 兼容传进来的数组索引大于数组本身长度的情况
     target.length = Math.max(target.length, key);
-    // 删除这这一项，再加入这一项
+    // 删除这一项，再加入这一项
+    // 前文有，Vue 中数组的 splice 方法会触发重新收集依赖
     target.splice(key, 1, val);
     return val
   }
@@ -1290,6 +1297,7 @@ function set (target, key, val) {
   }
 
   // 拿到原对象本身的 __ob__
+  // 开发环境下，报警告，提示响应式属性应该预先定义
   var ob = (target).__ob__;
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
@@ -1305,6 +1313,7 @@ function set (target, key, val) {
   }
 
   // 重新触发原对象的响应式搜集，新加入的属性也变成响应式的了
+  // ob.value 是 data
   defineReactive(ob.value, key, val);
   // 触发更新
   ob.dep.notify();
@@ -1314,6 +1323,7 @@ function set (target, key, val) {
 /**
  * Delete a property and trigger change if necessary.
  */
+// 删除一个属性，并如有有必要，触发更新
 // Vue.$set
 function del (target, key) {
   if (process.env.NODE_ENV !== 'production' &&
@@ -1321,10 +1331,15 @@ function del (target, key) {
   ) {
     warn(("Cannot delete reactive property on undefined, null, or primitive value: " + ((target))));
   }
+
+  // 数组的情况，直接调用 splice
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.splice(key, 1);
     return
   }
+
+  // 对象的情况
+  // 开发环境下，报警告，不建议删除，建议 null 😡
   var ob = (target).__ob__;
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
@@ -1348,6 +1363,8 @@ function del (target, key) {
  * Collect dependencies on array elements when the array is touched, since
  * we cannot intercept array element access like property getters.
  */
+// 数组的依赖收集
+// 递归遍历
 function dependArray (value) {
   for (var e = (void 0), i = 0, l = value.length; i < l; i++) {
     e = value[i];
@@ -1365,7 +1382,8 @@ function dependArray (value) {
  * how to merge a parent option value and a child option
  * value into the final value.
  */
-var strats = config.optionMergeStrategies;
+
+var strats = config.optionMergeStrategies; // Object.create(null)
 
 /**
  * Options with restrictions
@@ -1385,7 +1403,8 @@ if (process.env.NODE_ENV !== 'production') {
 /**
  * Helper that recursively merges two data objects together.
  */
-// 递归将 from 对象合并到 to 上
+// 递归将 from 对象属性合并到 to 上
+// 注意处理属性是 对象的情况
 function mergeData (to, from) {
   if (!from) { return to }
   var key, toVal, fromVal;
@@ -1448,7 +1467,7 @@ function mergeDataOrFn (
   }
 }
 
-// 对 data 的合并
+// 对 data 的合并策略
 strats.data = function (
   parentVal,
   childVal,
@@ -1475,7 +1494,7 @@ strats.data = function (
  * Hooks and props are merged as arrays.
  */
 
-// 对生命周期的合并
+// 对生命周期 lifeCycle 的合并策略
 function mergeHook (
   parentVal,
   childVal
@@ -1588,6 +1607,7 @@ strats.provide = mergeDataOrFn;
 /**
  * Default strategy.
  */
+// 默认策略
 var defaultStrat = function (parentVal, childVal) {
   return childVal === undefined
     ? parentVal
@@ -1597,13 +1617,14 @@ var defaultStrat = function (parentVal, childVal) {
 /**
  * Validate component names
  */
-// 校验组件名称
+// 校验组件 options 名称
 function checkComponents (options) {
   for (var key in options.components) {
     validateComponentName(key);
   }
 }
 
+// 校验组件组件名称
 function validateComponentName (name) {
   if (!/^[a-zA-Z][\w-]*$/.test(name)) {
     warn(
@@ -1636,7 +1657,7 @@ function normalizeProps (options, vm) {
   var res = {};
   var i, val, name;
 
-  // 是数组的情况
+  // 是 数组 的情况
   if (Array.isArray(props)) {
     i = props.length;
     while (i--) {
@@ -1652,7 +1673,7 @@ function normalizeProps (options, vm) {
       //   nickName: { type: null }
       // }
     }
-  // 是 对象的情况
+  // 是 对象 的情况
   } else if (isPlainObject(props)) {
     for (var key in props) {
       val = props[key];
@@ -1674,6 +1695,7 @@ function normalizeProps (options, vm) {
 /**
  * Normalize all injections into Object-based format
  */
+// 对 inject 规范化
 function normalizeInject (options, vm) {
   var inject = options.inject;
   if (!inject) { return }
@@ -1701,6 +1723,7 @@ function normalizeInject (options, vm) {
 /**
  * Normalize raw function directives into object format.
  */
+// 对 Directives 规范化
 function normalizeDirectives (options) {
   var dirs = options.directives;
   if (dirs) {
@@ -1728,7 +1751,6 @@ function assertObjectType (name, value, vm) {
  * Core utility used in both instantiation and inheritance.
  */
 
-// 合并两个对象到一起
 // 合并两个 options 到一起
 // 针对 options 中的不同 key，合并方法也不一样
 // 合并成一个新对象,并返回
@@ -1803,7 +1825,8 @@ function mergeOptions (
  * This function is used because child instances need access
  * to assets defined in its ancestor chain.
  */
-// 根据 ID 找到对应发 asset
+// 子 需要拿到原型链上的 asset
+// 根据 ID 找到对应 asset
 function resolveAsset (
   options,
   type,
@@ -2055,6 +2078,7 @@ function handleError (err, vm, info) {
   globalHandleError(err, vm, info);
 }
 
+// 全局的错误处理
 function globalHandleError (err, vm, info) {
   if (config.errorHandler) {
     try {
@@ -2066,6 +2090,7 @@ function globalHandleError (err, vm, info) {
   logError(err, vm, info);
 }
 
+// console 出错误
 function logError (err, vm, info) {
   if (process.env.NODE_ENV !== 'production') {
     warn(("Error in " + info + ": \"" + (err.toString()) + "\""), vm);
