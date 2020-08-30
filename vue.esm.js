@@ -2111,11 +2111,12 @@ function logError (err, vm, info) {
 var callbacks = [];
 
 // 异步队列是否处于等待阶段
+// 这是一个全局的变量，在最外层
 var pending = false;
 
 // 执行 callbacks 中的回调
 function flushCallbacks () {
-  // 异步队列开始执行
+  // 切换标志位，异步队列开始执行
   pending = false;
   var copies = callbacks.slice(0);
   callbacks.length = 0;
@@ -2159,6 +2160,7 @@ if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
   macroTimerFunc = function () {
     setImmediate(flushCallbacks);
   };
+
 // 是否支持原生 MessageChannel
 } else if (typeof MessageChannel !== 'undefined' && (
   isNative(MessageChannel) ||
@@ -2182,7 +2184,7 @@ if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
 // Determine microtask defer implementation.
 /* istanbul ignore next, $flow-disable-line */
 
-// 对于 micro task 的实现，则检测浏览器是否原生支持 Promise，不支持的话直接指向 macro task 的实现。
+// 对于 micro task 的实现，首先检测浏览器是否原生支持 Promise，不支持的话直接指向 macro task 的实现。
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
   var p = Promise.resolve();
   microTimerFunc = function () {
@@ -2228,12 +2230,10 @@ function nextTick (cb, ctx) {
       _resolve(ctx);
     }
   });
-  // 不在等待时，压入栈，同时加入异步队列，flushCallbacks 未执行
-  // 等待状态时，只 压入栈
-  // 异步队列执行时，即 flushCallbacks，会执行已经在栈里面的所有回调。
+  // 不在等待时，同时加入异步队列，flushCallbacks 尚未执行
+  // 异步队列执行时，即 flushCallbacks，会执行已经在 callback 里面的所有回调。
   // 同时把 pending 改为 false
-  // 表明此时 callbacks 并未执行，处于等待同步任务执行完的阶段
-  // 此可可以加入新的 回调函数，将来一起执行
+  // 表明此时 callbacks 在执行
   if (!pending) {
     pending = true;
     // setTimeout(flushCallbacks, 0);
@@ -2363,8 +2363,12 @@ var seenObjects = new _Set();
  * is collected as a "deep" dependency.
  */
 // 递归遍历每一个属性，以触发每一个属性的 getter，使得依赖收集完整
+// traverse 横过; 横越; 穿过; 横渡;
+
 function traverse (val) {
   _traverse(val, seenObjects);
+
+  // set 置空
   seenObjects.clear();
 }
 
