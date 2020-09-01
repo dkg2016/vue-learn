@@ -2623,9 +2623,8 @@ function simpleNormalizeChildren (children) {
 // with hand-written render functions / JSX. In such cases a full normalization
 // is needed to cater to all possible types of children values.
 
-// TODO: 当 children 包含那些会产生嵌套数组的组件，或者 children 是手写 render 而来时，需要对 children
 // 手写的 render，children 存在多层嵌套的情况，所以组要深度处理，拍平
-// 进行一次完全 normalization，所有可能类型的子类型 都变成 VNode
+// TODO: 当 children 包含那些会产生嵌套数组的组件，或者 children 是手写 render 而来时，需要对 children 进行一次完全 normalization，所有可能类型的子类型 都变成 VNode
 function normalizeChildren (children) {
   return isPrimitive(children) // 是否是一个原始值，例如 this.msg
     ? [createTextVNode(children)] // 是原始值的话，直接返回文本 VNode，并数组
@@ -2826,6 +2825,7 @@ function isAsyncPlaceholder (node) {
 
 /*  */
 
+// 获取第一个子节点 ？？？
 function getFirstComponentChild (children) {
   if (Array.isArray(children)) {
     for (var i = 0; i < children.length; i++) {
@@ -2840,7 +2840,7 @@ function getFirstComponentChild (children) {
 /*  */
 
 /*  */
-
+// 初始化事件
 function initEvents (vm) {
   vm._events = Object.create(null);
   vm._hasHookEvent = false;
@@ -2905,6 +2905,7 @@ function eventsMixin (Vue) {
   Vue.prototype.$once = function (event, fn) {
     var vm = this;
     function on () {
+      // once 实际是去除了一个此事件
       vm.$off(event, on);
       fn.apply(vm, arguments);
     }
@@ -3052,6 +3053,8 @@ function resolveScopedSlots (
 /*  */
 
 var activeInstance = null;
+
+// 是否正在更新子组件
 var isUpdatingChildComponent = false;
 
 // 生命周期
@@ -3088,7 +3091,7 @@ function lifecycleMixin (Vue) {
     var vm = this;
 
     // 钩子函数
-    // 已经渲染过的情况，触发 更新的钩子函数
+    // 已经渲染过的情况，触发 更新 的钩子函数
     // 组件已经 mounted 之后，才会去调用这个钩子函数
     if (vm._isMounted) {
       callHook(vm, 'beforeUpdate');
