@@ -3155,6 +3155,7 @@ function lifecycleMixin (Vue) {
     // updated in a parent's updated hook.
   };
 
+  // 强制更新
   Vue.prototype.$forceUpdate = function () {
     var vm = this;
     if (vm._watcher) {
@@ -3162,8 +3163,11 @@ function lifecycleMixin (Vue) {
     }
   };
 
+  // 销毁组件
   Vue.prototype.$destroy = function () {
     var vm = this;
+
+    // 正在销毁
     if (vm._isBeingDestroyed) {
       return
     }
@@ -3171,13 +3175,18 @@ function lifecycleMixin (Vue) {
     // $destroy 函数,先执行钩子函数 beforeDestroy
     callHook(vm, 'beforeDestroy');
 
+    // 标志位
     vm._isBeingDestroyed = true;
+
     // remove self from parent
+    // 从父组件中移除自己
     var parent = vm.$parent;
     if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) {
       remove(parent.$children, vm);
     }
+
     // teardown watchers
+    // 卸载 watcher
     if (vm._watcher) {
       vm._watcher.teardown();
     }
@@ -3190,6 +3199,7 @@ function lifecycleMixin (Vue) {
     if (vm._data.__ob__) {
       vm._data.__ob__.vmCount--;
     }
+
     // call the last hook...
     vm._isDestroyed = true;
     // invoke destroy hooks on current rendered tree
@@ -3198,6 +3208,7 @@ function lifecycleMixin (Vue) {
 
     // $destroy 函数,后执行钩子函数 destroyed
     callHook(vm, 'destroyed');
+
     // turn off all instance listeners.
     vm.$off();
     // remove __vue__ reference
@@ -3214,7 +3225,7 @@ function lifecycleMixin (Vue) {
 
 // return mount.call()方法调用
 // return mountComponent(this, el, hydrating)
-// 做挂载的方法
+// 最外层做挂载的方法
 function mountComponent (
   vm,
   el,
@@ -3222,7 +3233,6 @@ function mountComponent (
 ) {
   // el dom
   vm.$el = el;
-  // 讲道理，此时肯定有 render 函数了
 
   // 如果上一步没有生成 render 函数
   // 即 既没有手写 render 函数，也没有模板编译成 render 函数
