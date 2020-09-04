@@ -3227,7 +3227,7 @@ function lifecycleMixin (Vue) {
 // return mountComponent(this, el, hydrating)
 // 最外层做挂载的方法
 function mountComponent (
-  vm,
+  vm, // this
   el,
   hydrating
 ) {
@@ -3286,15 +3286,15 @@ function mountComponent (
       measure(("vue " + name + " patch"), startTag, endTag);
     };
   } else {
-    // 将 updateComponent 定义为一个函数（做最终渲染的）
+    // 将 updateComponent 定义为一个函数（做最终渲染使用）
     // 此时函数并未执行，仅定义
-    // updateComponent执行时，会执行 vm._update(vm._render(), hydrating);
+    // 执行 updateComponent，即执行 vm._update(vm._render(), hydrating);
     updateComponent = function () {
-      // update函数，第一个参数是 Vnode，第二个是一个布尔值
+      // update 函数，第一个参数是 Vnode，第二个是一个布尔值
       // 初次渲染，从 Watcher 中调用 updateComponent 函数，并赋值给 Watcher 中 value
       // 即调用 vm._update() 函数
-      // _update() 函数接收两个参数，render 生成的 Vnode 和 hydrating
 
+      // _update() 函数接收两个参数，render 生成的 Vnode 和 hydrating
       // 无论是组件还是正常,都通过 vm._render() 生成对应的VNode
       vm._update(vm._render(), hydrating);
     };
@@ -3377,6 +3377,7 @@ function updateChildComponent (
   }
 
   // update listeners
+  // 更新 事件
   listeners = listeners || emptyObject;
   var oldListeners = vm.$options._parentListeners;
   vm.$options._parentListeners = listeners;
@@ -3440,12 +3441,12 @@ function callHook (vm, hook) {
   pushTarget();
 
   // 根据传入的 hook, 拿到 vm.$options[hook]
-  // 拿到对应的回调函数数组
+  // 拿到 hook 对应的回调函数数组
   var handlers = vm.$options[hook];
   if (handlers) {
     for (var i = 0, j = handlers.length; i < j; i++) {
       try {
-        // 执行声明周期的每个回调
+        // 执行 hook 的每个回调
         // vm 作为上下文
         handlers[i].call(vm);
       } catch (e) {
@@ -3642,8 +3643,8 @@ var Watcher = function Watcher (
   vm,       // vue 实例
   expOrFn,  // 函数
   cb,       // 回调
-  options,
-  isRenderWatcher
+  options,  // null
+  isRenderWatcher // true
 ) {
   this.vm = vm;
   if (isRenderWatcher) {
@@ -3703,7 +3704,7 @@ var Watcher = function Watcher (
  * Evaluate the getter, and re-collect dependencies.
  */
 Watcher.prototype.get = function get () {
-  // 把此时此刻这个 watcher 放到全局的 target
+  // 把此时此刻这个 watcher 设置为全局的 target
   pushTarget(this);
   var value;
   var vm = this.vm;
@@ -3874,7 +3875,7 @@ Watcher.prototype.teardown = function teardown () {
 };
 
 /*  */
-
+// 共享的属性定义方法
 var sharedPropertyDefinition = {
   enumerable: true,
   configurable: true,
@@ -4614,7 +4615,7 @@ function installRenderHelpers (target) {
 }
 
 /*  */
-
+// 函数式渲染
 function FunctionalRenderContext (
   data,
   props,
