@@ -5394,7 +5394,8 @@ var uid$3 = 0;
 // _init() 方法初始化一个 Vue 实例
 function initMixin (Vue) {
   Vue.prototype._init = function (options) {
-    var vm = this; // 此处 this，执行时是新创建的 Vue 实例 vm
+    // 此处 this，执行时是新创建的 Vue 实例 vm，是 new 出来的新对象
+    var vm = this; 
     // a uid
     vm._uid = uid$3++;
 
@@ -5407,7 +5408,10 @@ function initMixin (Vue) {
     }
 
     // a flag to avoid this being observed
+    // 不要被 observe
     vm._isVue = true;
+
+    // options 的合并
     // merge options
 
     // 针对组件的 init ~~~~~~~~~~~~~~~~~~~~~~
@@ -5589,11 +5593,17 @@ function Vue (options) {
   // 在 initMixin() 中定义了 _init() 方法
   this._init(options);
 }
-// 执行这些， 给 构造函数 Vue 挂载了一些方法、属性
+// 执行这些， 在构造函数 Vue 的原型上挂载了一些方法、属性
+
+// 给构造函数 Vue 添加了 _init() 方法
 initMixin(Vue);
+
 stateMixin(Vue);
+
 eventsMixin(Vue);
+
 lifecycleMixin(Vue);
+
 renderMixin(Vue);
 
 /*  */
