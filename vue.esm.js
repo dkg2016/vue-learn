@@ -85,7 +85,7 @@ function isRegExp (v) {
 /**
  * Check if val is a valid array index.
  */
-// 是否合法数组索引
+// 是否合法的数组索引
 function isValidArrayIndex (val) {
   // 字符化
   // parseFloat，解析一个参数，并返回一个浮点数
@@ -2881,6 +2881,7 @@ function updateComponentListeners (
 
 
 // 事件相关的 混入
+// $on $off $once $emit
 function eventsMixin (Vue) {
   var hookRE = /^hook:/;
   Vue.prototype.$on = function (event, fn) {
@@ -3057,7 +3058,7 @@ var activeInstance = null;
 // 是否正在更新子组件
 var isUpdatingChildComponent = false;
 
-// 生命周期
+// vm 实例的状态
 function initLifecycle (vm) {
   var options = vm.$options;
 
@@ -3084,6 +3085,7 @@ function initLifecycle (vm) {
   vm._isBeingDestroyed = false;
 }
 
+// _update $forceUpdate $destroy
 // 首次渲染和数据更新的时候，都会调用 _update
 // _update 用来把 VNode 渲染成真正的 DOM，并插入到 document 中
 function lifecycleMixin (Vue) {
@@ -4196,6 +4198,8 @@ function createWatcher (
 }
 
 // 给 Vue 的原型 挂载一些属性
+// 挂载了 $data、$props $set $delete 
+// 以及 $watch
 function stateMixin (Vue) {
   // flow somehow has problems with directly declared definition object
   // when using Object.defineProperty, so we have to procedurally build up
@@ -5283,6 +5287,8 @@ function initRender (vm) {
   }
 }
 
+
+// $nextTick  _render
 // 全局方法,给 Vue 原型挂载 辅助方法 $nextTick _render 方法
 function renderMixin (Vue) {
   // install runtime convenience helpers
@@ -5454,7 +5460,7 @@ function initMixin (Vue) {
     }
     // expose real self
     vm._self = vm;
-    initLifecycle(vm);  // 初始化 生命周期
+    initLifecycle(vm);  // 初始化 vm 状态
     initEvents(vm);     // 初始化 事件中心
     initRender(vm);     // 初始化 render 函数   vm._c  和 vm.$createElement
 
