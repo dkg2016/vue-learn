@@ -1,3 +1,4 @@
+// 配置、常量
 var config = {}
 var ASSET_TYPES = [
     'component',
@@ -19,82 +20,6 @@ strats.data = function (parentVal, childVal, vm) {
     return mergeDataOrFn(parentVal, childVal, vm)
 }
 
-
-// 辅助函数
-// 判断有无某个自有属性
-function hasOwn(obj, key) {
-    return Object.prototype.hasOwnProperty.call(obj, key)
-}
-
-// 
-function isValidArrayIndex(val) {
-    var n = parseFloat(String(val))
-    return n >= 0 && Math.floor(n) === n && isFinite(val)
-}
-
-function defineReactive() {
-
-}
-
-function extend(to, _from) {
-    for (var key in _from) {
-        to[key] = _from[key]
-    }
-    return to
-}
-
-function set(target, key, val) {
-    if (Array.isArray(target) && isValidArrayIndex(key)) {
-        target.length = Math.max(target.length, key)
-        target.splice(key, 1, val)
-        return val
-    }
-
-    if (key in target && !(key in Object.prototype)) {
-        target[key] = val
-        return val
-    }
-
-    var ob = (target).__ob__
-    if (target._isVue || (ob && ob.vmCount)) {
-        return val
-    }
-
-    if (!ob) {
-        terget[key] = val
-        return val
-    }
-
-    defineReactive(ob.value, key, val)
-
-    ob.dep.notify()
-    return val
-
-}
-
-function del(target, key) {
-    if (Array.isArray(target) && isValidArrayIndex(key)) {
-        target.splice(key, 1)
-        return
-    }
-
-    var ob = (target).__ob__
-    if (target._isVue || (ob && ob.vmCount)) {
-        return
-    }
-
-    if (!hasOwn(target, key)) {
-        return
-    }
-
-    delete target[key]
-
-    if (!ob) {
-        return
-    }
-
-    ob.dep.notify()
-}
 
 function nextTick(cb, ctx) {
 
@@ -153,7 +78,20 @@ function stateMixin(Vue) {
 
     Vue.prototype.$watch = function (expOrFn, cb, options) {
         var vm = this
+        if (isPlainObject(cb)) {
+            return createWatcher(vm, expOrFn, cb, options)
+        }
 
+        options = options || {}
+
+        options.user = true
+        var watcher = new Watcher(vm, vm, expOrFn, cb, options)
+        if (options.immediate) {
+            cb.call(vm, watcher.value)
+        }
+        return function unwatchFn () {
+            watcher.teardown()
+        }
     }
 
 }
@@ -234,7 +172,7 @@ function initGlobalAPI(Vue) {
 }
 
 
-
+// 
 
 function mergeDataOrFn(parentVal, childVal, vm) {
     if (vm) {
@@ -317,6 +255,64 @@ function initEvents(vm) {
     }
 }
 
+// 
+function createWatcher () {
+
+}
+
+// Watcher
+var uid$1 = 0;
+
+var Watcher = function Watcher (
+    vm,
+    expOrFn,
+    cb,
+    options,
+    isRenderWatcher
+) {
+    this.vm = vm
+    if (isRenderWatcher) {
+        vm._watcher = this
+    }
+    vm._watchers.push(this)
+
+    if (options) {
+        this.deep = !!options.deep
+        this.user = !!options.user
+        this.lazy = !!options.lazy
+        this.sync = !!options.sync
+    } else {
+        this.deep = this.user = this.lazy = this.sync = false;
+    }
+
+    this.cb = cb
+    this.id = ++uid$1
+    this.active = true
+    this.dirty = this.lazy
+
+    this.deps = []
+    this.newDeps = []
+    
+    this.depIds = new _Set()
+    this.newDepIds = new _Set()
+
+    this.expression = expOrFn.toString()
+
+    if (typeof expOrFn === 'function') {
+        this.getter = expOrFn
+    } else {
+        this.getter = parsePath(expOrFn)
+        if (!this.getter) {
+            this.getter = function () {}
+        }
+    }
+
+    this.value = this.lazy ? undefined : this.get()
+}
+
+Watcher.prototype.get = function () {}
+
+function createWatcher () {}
 
 
 // ! 执行

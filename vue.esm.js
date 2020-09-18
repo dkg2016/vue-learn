@@ -549,9 +549,9 @@ function def (obj, key, val, enumerable) {
 }
 
 /**
- * Parse simple path.
+ * Parse simple path. 解析简单的路径
  */
-// ？？？？？？
+// 不是 word . $
 var bailRE = /[^\w.$]/;
 function parsePath (path) {
   if (bailRE.test(path)) {
