@@ -21,6 +21,16 @@ function defineReactive() {
 
 }
 
+function toArray(list, start) {
+    start = start || 0
+    var i = list.length - start
+    var ret = new Array(i)
+    while (i--) {
+        ret[i] = list[i + start]
+    }
+    return ret
+}
+
 function extend(to, _from) {
     for (var key in _from) {
         to[key] = _from[key]
