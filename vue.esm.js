@@ -3845,7 +3845,7 @@ Watcher.prototype.evaluate = function evaluate () {
  * Depend on all deps collected by this watcher.
  */
 Watcher.prototype.depend = function depend () {
-    var this$1 = this;
+  var this$1 = this;
 
   var i = this.deps.length;
   while (i--) {

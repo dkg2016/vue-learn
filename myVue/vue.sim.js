@@ -322,10 +322,6 @@ function initEvents(vm) {
     }
 }
 
-// 
-function createWatcher() {
-
-}
 
 // Watcher
 var uid$1 = 0;

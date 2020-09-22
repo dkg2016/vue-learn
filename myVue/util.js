@@ -3,10 +3,23 @@ function hasOwn(obj, key) {
     return Object.prototype.hasOwnProperty.call(obj, key)
 }
 
+function remove (arr, item) {
+    if (arr.length) {
+        var index = arr.indexOf(item)
+        if (index > -1) {
+            return arr.splice(index, 1)
+        }
+    }
+}
+
 // 
 function isValidArrayIndex(val) {
     var n = parseFloat(String(val))
     return n >= 0 && Math.floor(n) === n && isFinite(val)
+}
+
+function isObject (obj) {
+    return obj !== null && typeof obj === 'object'
 }
 
 function isPlainObject (obj) {
@@ -38,6 +51,7 @@ function extend(to, _from) {
     return to
 }
 
+// 向响应式对象中添加一个属性，并确保这个新属性同样是响应式的，且触发视图更新
 function set(target, key, val) {
     if (Array.isArray(target) && isValidArrayIndex(key)) {
         target.length = Math.max(target.length, key)
@@ -67,6 +81,7 @@ function set(target, key, val) {
 
 }
 
+// 删除对象的属性。如果对象是响应式的，确保删除能触发更新视图
 function del(target, key) {
     if (Array.isArray(target) && isValidArrayIndex(key)) {
         target.splice(key, 1)
