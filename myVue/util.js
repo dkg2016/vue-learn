@@ -30,10 +30,6 @@ function isNative (Ctor) {
     return typeof Ctor === 'function' && /native code/.test(Ctor.toString())
 }
 
-function defineReactive() {
-
-}
-
 function toArray(list, start) {
     start = start || 0
     var i = list.length - start

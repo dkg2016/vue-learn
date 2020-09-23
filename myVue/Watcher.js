@@ -1,6 +1,6 @@
 var uid$1 = 0
 
-var Watcher  =function Watcher (
+var Watcher = function Watcher(
     vm,
     expOrFn,
     cb,
@@ -49,7 +49,7 @@ var Watcher  =function Watcher (
     this.value = this.lazy ? undefined : this.get()
 }
 
-Watcher.prototype.get = function get () {
+Watcher.prototype.get = function get() {
     // 将当前 watcher 指定为全局 Dep 的 target
     pushTarget(this)
 
@@ -62,7 +62,7 @@ Watcher.prototype.get = function get () {
         throw e
     } finally {
         if (this.deep) {
-            
+
         }
         popTarget()
         this.cleanupDeps()
@@ -71,7 +71,7 @@ Watcher.prototype.get = function get () {
     return value
 }
 
-Watcher.prototype.addDep = function addDep (dep) {
+Watcher.prototype.addDep = function addDep(dep) {
     var id = dep.id
     if (!this.newDepIds.has(id)) {
         this.newDepIds.add(id)
@@ -82,7 +82,7 @@ Watcher.prototype.addDep = function addDep (dep) {
     }
 }
 
-Watcher.prototype.cleanupDeps = function cleanupDeps () {
+Watcher.prototype.cleanupDeps = function cleanupDeps() {
     var this$1 = this
 
     var i = this.deps.length
@@ -103,7 +103,7 @@ Watcher.prototype.cleanupDeps = function cleanupDeps () {
     this.newDeps.length = 0
 }
 
-Watcher.prototype.update = function update () {
+Watcher.prototype.update = function update() {
     if (this.lazy) {
 
     } else if (this.sync) {
@@ -113,7 +113,7 @@ Watcher.prototype.update = function update () {
     }
 }
 
-Watcher.prototype.run = function run () {
+Watcher.prototype.run = function run() {
     if (this.active) {
         var value = this.get()
 
@@ -129,12 +129,12 @@ Watcher.prototype.run = function run () {
     }
 }
 
-Watcher.prototype.evaluate = function evaluate () {
+Watcher.prototype.evaluate = function evaluate() {
     this.value = this.get()
-    this.dirty = false    
+    this.dirty = false
 }
 
-Watcher.prototype.depend = function depend () {
+Watcher.prototype.depend = function depend() {
     var this$1 = this
     var i = this.deps.length
     while (i--) {
@@ -142,7 +142,7 @@ Watcher.prototype.depend = function depend () {
     }
 }
 
-Watcher.prototype.teardown = function teardown () {
+Watcher.prototype.teardown = function teardown() {
     var this$1 = this
     if (this.active) {
         if (!this.vm._isBeingDestroyed) {
@@ -155,4 +155,23 @@ Watcher.prototype.teardown = function teardown () {
         }
         this.active = false
     }
+}
+
+
+function createWatcher(
+    vm,
+    expOrFn,
+    handler,
+    options
+) {
+    if (isPlainObject(handler)) {
+        options = handler
+        handler = handler.handler
+    }
+
+    if (typeof handler === 'string') {
+        handler = vm[handler]
+    }
+
+    return vm.$watch(expOrFn, handler, options)
 }
