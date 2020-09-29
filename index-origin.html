@@ -7,14 +7,16 @@
     <script src="./vue.js"></script>
 </head>
 <body>
-    <div id="app"></div>
+    <div id="app">{{name}}</div>
 </body>
 <script>
     let vm = new Vue({
+        el: '#app',
         data: {
             name: 'kg'
         }
     })
-    console.log(vm)
+    // console.log(vm)
+    // console.dir(Vue)
 </script>
 </html>

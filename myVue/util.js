@@ -3,7 +3,7 @@ function hasOwn(obj, key) {
     return Object.prototype.hasOwnProperty.call(obj, key)
 }
 
-function remove (arr, item) {
+function remove(arr, item) {
     if (arr.length) {
         var index = arr.indexOf(item)
         if (index > -1) {
@@ -18,15 +18,15 @@ function isValidArrayIndex(val) {
     return n >= 0 && Math.floor(n) === n && isFinite(val)
 }
 
-function isObject (obj) {
+function isObject(obj) {
     return obj !== null && typeof obj === 'object'
 }
 
-function isPlainObject (obj) {
+function isPlainObject(obj) {
     return Object.prototype.toString.call(obj) === '[object object]'
 }
 
-function isNative (Ctor) {
+function isNative(Ctor) {
     return typeof Ctor === 'function' && /native code/.test(Ctor.toString())
 }
 
@@ -101,3 +101,14 @@ function del(target, key) {
 
     ob.dep.notify()
 }
+
+function query(el) {
+    if (typeof el === 'string') {
+        var selected = document.querySelector(el)
+        return selected
+    } else {
+        return el
+    }
+}
+
+var inBrowser = typeof window !== 'ubdefined'

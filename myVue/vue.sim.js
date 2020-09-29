@@ -214,6 +214,7 @@ function installRenderHelpers(target) {
 
 }
 
+// 给 Vue 这个对象本身扩展全局的静态方法
 function initGlobalAPI(Vue) {
     var configDef = {}
     configDef.get = function () {
@@ -337,7 +338,30 @@ var patch = createPatchFunction()
 function createPatchFunction () {}
 
 // mount
-Vue.prototype.$mount = function () {}
+function mountComponent(){}
+
+Vue.prototype.$mount = function (el, hydrating) {
+    el = el && inBrowser ? query(el) : undefined
+    return mountComponent(this, el, hydrating)
+}
+
+var mount = Vue.prototype.$mount
+Vue.prototype.$mount = function (el, hydrating) {
+    el = el && query(el)
+
+    if (el === document.body || el === document.documentElement) {
+        console.log("Do not mount Vue to <html> or <body> - mount to normal elements instead.")
+        return this
+    }
+
+    var options = this.$options
+
+    if (!options.render) {
+
+    }
+
+    return mount.call(this, el, hydrating)
+}
 
 // let myObj = {
 //     data: {
