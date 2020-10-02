@@ -1,3 +1,5 @@
+var emptyObject = Object.freeze({});
+
 // 判断有无某个自有属性
 function hasOwn(obj, key) {
     return Object.prototype.hasOwnProperty.call(obj, key)
@@ -110,5 +112,7 @@ function query(el) {
         return el
     }
 }
+
+function noop (a, b, c) {}
 
 var inBrowser = typeof window !== 'ubdefined'

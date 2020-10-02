@@ -5460,7 +5460,7 @@ function initMixin (Vue) {
     }
     // expose real self
     vm._self = vm;
-    initLifecycle(vm);  // 初始化 vm 状态
+    initLifecycle(vm);  // 初始化 生命周期
     initEvents(vm);     // 初始化 事件中心
     initRender(vm);     // 初始化 render 函数   vm._c  和 vm.$createElement
 
@@ -12180,10 +12180,10 @@ var idToTemplate = cached(function (id) {
   return el && el.innerHTML
 });
 
-// 缓存下原型上的 $mount(放在了全局)
+// 缓存原型上的 $mount(放在了全局)
 var mount = Vue.prototype.$mount;
 
-// 重新定义 $mount，因为不带 compile 版本没有 $mount
+// 重新定义 $mount，因为不带 compile 版本没有完整的 $mount
 // 不带 compiler 的版本，这部分工作由 webpack 中的 vue-loader 做了
 // 这是带 compiler 版本的
 

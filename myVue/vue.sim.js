@@ -42,6 +42,7 @@ function initMixin(Vue) {
         if (options && options._isComponent) {
 
         } else {
+            // 合并配置
             // vm.constructor.options => Vue.options
             vm.$options = mergeOptions(vm.constructor.options, options || {}, vm)
         }
@@ -49,9 +50,18 @@ function initMixin(Vue) {
         vm._renderProxy = vm;
         vm._self = vm
 
+        // 初始化生命周期
         initLifecycle(vm)
 
+        // 初始化事件中心
         initEvents(vm)
+
+        // 初始化数据
+        initState(vm)
+
+        if (vm.$options.el) {
+            vm.$mount(vm.$options.el)
+        }
     }
 }
 
@@ -113,7 +123,8 @@ function eventsMixin(Vue) {
 
     Vue.prototype.$once = function (event, fn) {
         var vm = this
-        function on () {
+
+        function on() {
             vm.$off(event, on)
             fn.apply(vm, arguments)
         }
@@ -133,7 +144,7 @@ function eventsMixin(Vue) {
         }
 
         if (Array.isArray(event)) {
-            for (var i = 0, l = event.length; i<l;i++) {
+            for (var i = 0, l = event.length; i < l; i++) {
                 this$1.$off(event[i], fn)
             }
             return vm
@@ -174,7 +185,7 @@ function eventsMixin(Vue) {
                 try {
                     chs[i].apply(vm, args)
                 } catch (e) {
-                    console.log('$emit 出错' )
+                    console.log('$emit 出错')
                 }
             }
         }
@@ -204,9 +215,7 @@ function renderMixin(Vue) {
         return nextTick(fn, this)
     }
 
-    Vue.prototype._render = function () {
-
-    }
+    Vue.prototype._render = render()
 
 }
 
@@ -298,7 +307,7 @@ function initLifecycle(vm) {
     var options = vm.$options
 
     var parent = options.parent
-    console.log(435)
+
     vm.$parent = parent
     vm.$root = parent ? parent.$root : vm
 
@@ -323,6 +332,10 @@ function initEvents(vm) {
     }
 }
 
+function initState(vm) {
+    vm._watchers = []
+}
+
 
 // ! 执行
 initMixin(Vue)
@@ -332,13 +345,47 @@ lifecycleMixin(Vue)
 renderMixin(Vue)
 initGlobalAPI(Vue)
 
+function callHook() {
+
+}
+
 // patch
 Vue.prototype.__patch__ = patch
 var patch = createPatchFunction()
-function createPatchFunction () {}
+
+function createPatchFunction() {}
 
 // mount
-function mountComponent(){}
+function mountComponent(
+    vm,
+    el,
+    hydrating
+) {
+    // DOM
+    vm.$el = el
+
+    if (!vm.$options.render) {
+        
+    }
+
+    callHook(vm, 'beforeMount')
+
+    var updateComponent = function () {
+        console.log(vm)
+        vm._update(vm._render(), hydrating)
+    }
+
+    new Watcher(vm, updateComponent, noop, null, true)
+
+    hydrating = false
+
+    if (vm.$vnode == null) {
+        vm._isMounted = true
+        callHook(vm, 'mounted')
+    }
+
+    return vm
+}
 
 Vue.prototype.$mount = function (el, hydrating) {
     el = el && inBrowser ? query(el) : undefined
@@ -348,7 +395,7 @@ Vue.prototype.$mount = function (el, hydrating) {
 var mount = Vue.prototype.$mount
 Vue.prototype.$mount = function (el, hydrating) {
     el = el && query(el)
-
+    console.log(el)
     if (el === document.body || el === document.documentElement) {
         console.log("Do not mount Vue to <html> or <body> - mount to normal elements instead.")
         return this
@@ -368,6 +415,9 @@ Vue.prototype.$mount = function (el, hydrating) {
 //         name: 'kg'
 //     }
 // }
-// let vm = new Vue()
+let vm = new Vue({
+    el: '#one'
+})
 // console.log(vm)
-console.dir(Vue)
+// console.log(vm)
+// console.dir(Vue)
