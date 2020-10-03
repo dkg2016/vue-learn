@@ -56,6 +56,9 @@ function initMixin(Vue) {
         // 初始化事件中心
         initEvents(vm)
 
+        // 初始化 _render
+        initRender(vm)
+
         // 初始化数据
         initState(vm)
 
@@ -215,7 +218,27 @@ function renderMixin(Vue) {
         return nextTick(fn, this)
     }
 
-    Vue.prototype._render = render()
+    Vue.prototype._render = function () {
+        var vm = this
+        var ref = vm.$options
+
+        var render = ref.render
+        var _parentVnode = ref._parentVnode
+
+        if (_parentVnode) {
+            vm.$scopedSlots = _parentVnode.data.scopedSlots || emptyObject
+        }
+
+        vm.$vnode = _parentVnode
+
+        var vnode
+
+        try {
+            vnode = render.call(vm._renderProxy, vm.$createElement)
+        } catch (e) {
+            console.log(e)
+        }
+    }
 
 }
 
@@ -332,6 +355,20 @@ function initEvents(vm) {
     }
 }
 
+function initRender(vm) {
+    vm._vnode = null
+    vm._staticTrees = null
+    
+    var options = vm.$options
+
+
+    //...
+
+    vm.$createElement = function (a, b, c, d) {
+        return createElement(vm, a, b, c, d, true)
+    }
+}
+
 function initState(vm) {
     vm._watchers = []
 }
@@ -347,6 +384,10 @@ initGlobalAPI(Vue)
 
 function callHook() {
 
+}
+
+Vue.config.isReservedTag = function (tag) {
+    return isHTMLTag(tag)
 }
 
 // patch
@@ -365,13 +406,12 @@ function mountComponent(
     vm.$el = el
 
     if (!vm.$options.render) {
-        
+
     }
 
     callHook(vm, 'beforeMount')
 
     var updateComponent = function () {
-        console.log(vm)
         vm._update(vm._render(), hydrating)
     }
 
@@ -395,7 +435,6 @@ Vue.prototype.$mount = function (el, hydrating) {
 var mount = Vue.prototype.$mount
 Vue.prototype.$mount = function (el, hydrating) {
     el = el && query(el)
-    console.log(el)
     if (el === document.body || el === document.documentElement) {
         console.log("Do not mount Vue to <html> or <body> - mount to normal elements instead.")
         return this
@@ -409,15 +448,3 @@ Vue.prototype.$mount = function (el, hydrating) {
 
     return mount.call(this, el, hydrating)
 }
-
-// let myObj = {
-//     data: {
-//         name: 'kg'
-//     }
-// }
-let vm = new Vue({
-    el: '#one'
-})
-// console.log(vm)
-// console.log(vm)
-// console.dir(Vue)

@@ -113,6 +113,23 @@ function query(el) {
     }
 }
 
-function noop (a, b, c) {}
+function noop(a, b, c) {}
 
 var inBrowser = typeof window !== 'ubdefined'
+
+function isPrimitive(value) {
+    return (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'symbol' ||
+        typeof value === 'boolean'
+    )
+}
+
+function isTrue(v) {
+    return v === true
+}
+
+function isDef (v) {
+    return v !== undefined && v !== null
+}
