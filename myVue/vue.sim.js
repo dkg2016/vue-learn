@@ -198,8 +198,26 @@ function eventsMixin(Vue) {
 }
 
 function lifecycleMixin(Vue) {
-    Vue.prototype._update = function () {
+    Vue.prototype._update = function (vnode, hydrating) {
+        var vm = this
+        if (vm._isMounted) {
+            callHook(vm, 'beforeUpdate')
+        }
 
+        var prevEl = vm.$el
+
+        var prevVnode = vm._vnode
+
+        vm._vnode = vnode
+        if (!prevVnode) {
+            vm.$el = vm.__patch__(
+                vm.$el, vnode, hydrating, false,
+                vm.$options._parentElm,
+                vm.$options._refElm
+            )
+        } else {
+            vm.$el = vm.__patch__(prevVnode, vnode)
+        }
     }
 
     Vue.prototype.$forceUpdate = function () {
@@ -238,6 +256,7 @@ function renderMixin(Vue) {
         } catch (e) {
             console.log(e)
         }
+        return vnode
     }
 
 }
@@ -391,10 +410,50 @@ Vue.config.isReservedTag = function (tag) {
 }
 
 // patch
-Vue.prototype.__patch__ = patch
-var patch = createPatchFunction()
+var nodeOps = Object.freeze({
+    createElement: function (tagName, vnode) {
+        var elm = document.createElement(tagName)
+        if (tagName !== 'select') {
+            return elm
+        }
+    },
 
-function createPatchFunction() {}
+    appendChild: function (node, child) {
+        node.appendChild(child)
+    },
+
+    createTextNode: function (text) {
+        return document.createTextNode(text)
+    },
+
+    tagName: function (node) {
+        return node.tagName
+    },
+
+    parentNode: function (node) {
+        return node.parentNode
+    },
+
+    nextSibling: function (node) {
+        return node.nextSibling
+    }
+})
+
+var modules = [
+    // attrs,
+    // klass,
+    // events,
+    // domProps,
+    // style,
+    // transition,
+    // ref,
+    // directives
+]
+
+
+var patch = createPatchFunction({nodeOps: nodeOps, modules: modules})
+
+Vue.prototype.__patch__ = patch
 
 // mount
 function mountComponent(

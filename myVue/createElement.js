@@ -42,7 +42,6 @@ function _createElement (
         )
         // }
     }
-    console.log(vnode)
 
     if (Array.isArray(vnode)) {
         return vnode
