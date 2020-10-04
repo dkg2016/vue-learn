@@ -15,5 +15,6 @@ var VNode = function VNode (
     this.elm = elm
     this.context = context
     this.componentOptions = componentOptions
+    this.isComment = false
     this.asyncFactory = asyncFactory
 }

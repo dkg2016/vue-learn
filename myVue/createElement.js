@@ -18,7 +18,6 @@ function createElement (
     if (isTrue(alwaysNormalize)) {
         normalizationType = ALWAYS_NORMALIZE
     }
-
     return _createElement(context, tag, data, children, normalizationType)
 }
 
@@ -34,6 +33,10 @@ function _createElement (
     }
 
     var vnode
+    
+    if (!tag) {
+        return createEmptyVNode()
+    }
 
     if (typeof tag === 'string') {
         // if (config.isReservedTag(tag)) {
@@ -54,6 +57,16 @@ function normalizeChildren (children) {
     return [createTextVNode(children)]
 }
 
+
+function createEmptyVNode (text) {
+    if (text === void 0) text = ''
+
+    var node = new VNode()
+
+    node.text = text
+    node.isComment = true
+    return node
+}
 function createTextVNode(val) {
     return new VNode(undefined, undefined, undefined, String(val))
 }

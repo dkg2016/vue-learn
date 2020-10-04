@@ -7,16 +7,21 @@
     <script src="./vue.js"></script>
 </head>
 <body>
-    <div id="app">{{name}}</div>
+    <div id="app"></div>
 </body>
 <script>
     let vm = new Vue({
         el: '#app',
         data: {
             name: 'kg'
+        },
+        render: function (h) {
+          return h('div', {
+            attrs: {
+              id: 'app'
+            }
+          }, this.name)
         }
     })
-    // console.log(vm)
-    // console.dir(Vue)
 </script>
 </html>

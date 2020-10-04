@@ -390,6 +390,33 @@ function initRender(vm) {
 
 function initState(vm) {
     vm._watchers = []
+    var opts = vm.$options
+    
+    // 初始化 data
+    if (opts.data) {
+        initData(vm)
+    }
+}
+
+function initData (vm) {
+    var data = vm.$options.data
+    data = vm._data = typeof data === 'function' ? getData(data, vm) : data || {}
+
+    var keys = Object.keys(data)
+    var i = keys.length
+    
+    while (i--) {
+        var key = keys[i]
+        proxy(vm, "_data", key)
+    }
+}
+
+function getData(data, vm) {
+    try {
+        return data.call(vm, vm)
+    } catch (e) {
+        console.log('初始化data出错')
+    }
 }
 
 

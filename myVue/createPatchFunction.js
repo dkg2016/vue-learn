@@ -38,10 +38,15 @@ function createPatchFunction(backend) {
 
         if (isDef(tag)) {
             vnode.elm = nodeOps.createElement(tag, vnode)
-        }
+            {
+                createChildren(vnode, children, insertedVnodeQueue)
+            }
+            insert(parentElm, vnode.elm, refElm);
+        } else if (isTrue(vnode.isComment)) {
 
-        {
-            createChildren(vnode, children, insertedVnodeQueue)
+        } else {
+            vnode.elm = nodeOps.createTextNode(vnode.text)
+            insert(parentElm, vnode.elm, refElm)
         }
     }
 
@@ -51,8 +56,13 @@ function createPatchFunction(backend) {
                 createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i)
             }
         } else if (isPrimitive(vnode.text)) {
-            console.log(vnode)
             nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text)))
+        }
+    }
+
+    function insert (parent, elm, ref$$1) {
+        if (isDef(parent)) {
+            nodeOps.appendChild(parent, elm)
         }
     }
 
@@ -60,7 +70,7 @@ function createPatchFunction(backend) {
         var isInitialPatch = false
 
         var insertedVnodeQueue = []
-       
+        // console.log(oldVnode, vnode)
         if (isUndef(oldVnode)) {
             isInitialPatch = true
             createElm(vnode, insertedVnodeQueue, parentElm, refElm)
@@ -74,12 +84,14 @@ function createPatchFunction(backend) {
             var oldElm = oldVnode.elm
 
             var parentElm$1 = nodeOps.parentNode(oldElm)
+            
             createElm(
                 vnode,
                 insertedVnodeQueue,
                 parentElm$1,
                 nodeOps.nextSibling(oldElm)
             )
+            console.log(vnode)
         }
     }
 }
