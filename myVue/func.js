@@ -27,7 +27,7 @@ function defineReactive(
         enumerable: true,
         configurable: true,
 
-        get: function reactiveGetter () {
+        get: function reactiveGetter() {
             var value = getter ? getter.call(obj) : val
 
             if (Dep.target) {
@@ -42,7 +42,7 @@ function defineReactive(
             return value
         },
 
-        set: function reactiveSetter (newVal) {
+        set: function reactiveSetter(newVal) {
             var value = getter ? getter.call(obj) : val
 
             if (newVal === value || (newVal !== newVal && value !== value)) {
@@ -61,7 +61,7 @@ function defineReactive(
     })
 }
 
-function dependArray (value) {
+function dependArray(value) {
     for (var e = (void 0), i = 0, l = value.length; i < l; i++) {
         e = value[i]
         e && e.__ob__ && e.__ob__.dep.depend()
@@ -89,3 +89,80 @@ function parsePath(path) {
         return obj
     }
 }
+
+function resolveAsset(
+    options,
+    type,
+    id,
+    warnMissing
+) {
+    if (typeof id !== 'string') {
+        return
+    }
+
+    var assets = options[type]
+
+    if (hasOwn(assets, id)) {
+        return assets[id]
+    }
+
+    var camelizedId = camelize(id)
+    if (hasOwn(assets, camelizedId)) {
+        return assets[camelizedId]
+    }
+
+    var PascalCaseId = capitalize(camelizedId)
+    if (hasOwn(assets, PascalCaseId)) {return assets[PascalCaseId]}
+
+    var res = assets[id] || assets[camelizedId] || assets[PascalCaseId]
+
+    return res
+}
+
+function cached(fn) {
+    var cache = Object.create(null)
+    return (function cachedFn(str) {
+        var hit = cache[str]
+        return hit || (cache[str] = fn(str))
+    })
+}
+
+var camelizeRE = /-\w/g
+var camelize = cached(function (str) {
+    return str.replace(camelizeRE, function (_, c) {
+        return c ? c.toUpperCase() : ''
+    })
+})
+
+var capitalize = cached(function (str) {
+    return str.charAt(0).toUpperCase() + str.slice(1)
+})
+
+function makeMap(str, expectsLowerCase) {
+    var map = Object.create(null)
+
+    var list = str.split(',')
+    for (var i = 0; i < list.length; i++) {
+        map[list[i]] = true
+    }
+
+    return expectsLowerCase ?
+        function (val) {
+            return map[val.toLowerCase()]
+        } :
+        function (val) {
+            return map[val]
+        }
+}
+
+var isHTMLTag = makeMap('html,body,base,head,link,meta,style,title,' +
+    'address,article,aside,footer,header,h1,h2,h3,h4,h5,h6,hgroup,nav,section,' +
+    'div,dd,dl,dt,figcaption,figure,picture,hr,img,li,main,ol,p,pre,ul,' +
+    'a,b,abbr,bdi,bdo,br,cite,code,data,dfn,em,i,kbd,mark,q,rp,rt,rtc,ruby,' +
+    's,samp,small,span,strong,sub,sup,time,u,var,wbr,area,audio,map,track,video,' +
+    'embed,object,param,source,canvas,script,noscript,del,ins,' +
+    'caption,col,colgroup,table,thead,tbody,td,th,tr,' +
+    'button,datalist,fieldset,form,input,label,legend,meter,optgroup,option,' +
+    'output,progress,select,textarea,' +
+    'details,dialog,menu,menuitem,summary,' +
+    'content,element,shadow,template,blockquote,iframe,tfoot')

@@ -28,22 +28,29 @@ function _createElement(
     children,
     normalizationType
 ) {
+    if (!tag) {
+        return createEmptyVNode()
+    }
+
     if (normalizationType === ALWAYS_NORMALIZE) {
         children = normalizeChildren(children)
     }
 
     var vnode
 
-    if (!tag) {
-        return createEmptyVNode()
-    }
-
     if (typeof tag === 'string') {
-        // if (config.isReservedTag(tag)) {
-        vnode = new VNode(
-            tag, data, children, undefined, undefined, context
-        )
-        // }
+        var Ctor
+        if (config.isReservedTag(tag)) {
+            vnode = new VNode(
+                tag, data, children, undefined, undefined, context
+            )
+        } else if (isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
+            vnode = createComponent(Ctor, data, context, children, tag)
+        } else {
+            vnode = new VNode(tag, data, children, undefined, indefined, context)
+        }
+    } else {
+        vnode = createComponent(tag, data, context, children)
     }
 
     if (Array.isArray(vnode)) {
@@ -54,8 +61,7 @@ function _createElement(
 }
 
 function normalizeChildren(children) {
-    return isPrimitive(children) ?
-        [createTextVNode(children)] :
+    return isPrimitive(children) ? [createTextVNode(children)] :
         Array.isArray(children) ?
         normalizeArrayChildren(children) :
         undefined
@@ -66,7 +72,9 @@ function normalizeArrayChildren(children, nestedIndex) {
     var i, c, lastIndex, last
     for (var i = 0; i < children.length; i++) {
         c = children[i]
-        if (isUndef(c) || typeof c === 'boolean') { continue }
+        if (isUndef(c) || typeof c === 'boolean') {
+            continue
+        }
         lastIndex = res.length - 1
         last = res[lastIndex]
 
@@ -86,18 +94,21 @@ function normalizeArrayChildren(children, nestedIndex) {
                 res.push(createTextVNode(c))
             }
         } else {
-            if (isTrue(children.isVList) && 
-            isDef(c.tag) &&
-            isUndef(c.key) &&
-            isDef(nestedIndex)) {
+            if (isTrue(children.isVList) &&
+                isDef(c.tag) &&
+                isUndef(c.key) &&
+                isDef(nestedIndex)) {
                 c.key = "__vlist" + nestedIndex + "_" + i + "__";
             }
-            console.log(c)
             res.push(c)
         }
     }
 
     return res
+}
+
+function createComponent () {
+
 }
 
 
@@ -115,6 +126,6 @@ function createTextVNode(val) {
     return new VNode(undefined, undefined, undefined, String(val))
 }
 
-function isTextNode (node) {
+function isTextNode(node) {
     return isDef(node) && isDef(node.text) && isFalse(node.isComment)
 }
