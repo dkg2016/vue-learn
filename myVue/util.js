@@ -130,6 +130,10 @@ function isTrue(v) {
     return v === true
 }
 
+function isFalse (v) {
+    return v === false
+}
+
 function isDef (v) {
     return v !== undefined && v !== null
 }

@@ -91,7 +91,7 @@ function createPatchFunction(backend) {
                 parentElm$1,
                 nodeOps.nextSibling(oldElm)
             )
-            console.log(vnode)
+            // console.log(vnode)
         }
     }
 }
