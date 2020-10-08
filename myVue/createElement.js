@@ -132,8 +132,13 @@ function createComponent(
 
     var vnode = new VNode(
         ("vue-component-" + (Ctor.cid) + (name ? ("-" + name) : '')), // tag
-        data, undefined, undefined, undefined, context,
-        { Ctor: Ctor, propsData: {}, listeners: {}, tag: tag, children: children }, // 组件对象
+        data, undefined, undefined, undefined, context, {
+            Ctor: Ctor,
+            propsData: {},
+            listeners: {},
+            tag: tag,
+            children: children
+        }, // 组件对象
         asyncFactory = undefined
     )
 
@@ -162,7 +167,6 @@ var componentVNodeHooks = {
                 parentElm,
                 refElm
             )
-            console.log('child', child)
             child.$mount(hydrating ? vnode.elm : undefined, hydrating)
         }
     },
@@ -172,7 +176,14 @@ var componentVNodeHooks = {
     },
 
     insert: function insert() {
+        var context = vnode.context;
+        var componentInstance = vnode.componentInstance;
+        if (!componentInstance._isMounted) {
+            componentInstance._isMounted = true;
 
+            // 执行组件的 mounted 钩子函数
+            callHook(componentInstance, 'mounted');
+        }
     },
 
     destroy: function destroy() {
@@ -181,7 +192,7 @@ var componentVNodeHooks = {
 }
 var hooksToMerge = Object.keys(componentVNodeHooks)
 
-function createComponentInstanceForVnode (
+function createComponentInstanceForVnode(
     vnode,
     parent,
     parentElm,

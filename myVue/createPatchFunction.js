@@ -81,12 +81,13 @@ function createPatchFunction(backend) {
     }
 
     function removeVnodes (parentElm, vnodes, startIdx, endIdx) {
-        debugger
+        // debugger
         for (; startIdx <= endIdx; ++startIdx) {
             var ch = vnodes[startIdx]
             if (isDef(ch)) {
                 if (isDef(ch.tag)) {
-
+                    removeAndInvokeRemoveHook(ch)
+                    invokeDestroyHook(ch)
                 } else {
                     removeNode(ch.elm)
                 }
@@ -94,11 +95,33 @@ function createPatchFunction(backend) {
         }
     }
 
+    function removeAndInvokeRemoveHook(vnode, rm) {
+        if (isDef(rm) || isDef(vnode.data)) {
+
+        } else {
+            rmmoveNode(vnode.elm)
+        }
+    }
+
+    function invokeDestroyHook(vnode) {
+
+    }
+
     function removeNode(el) {
         var parent = nodeOps.parentNode(el)
         if (isDef(parent)) {
             nodeOps.removeChild(parent, el);
         }
+    }
+
+    function invokeInsertHook (vnode, queue, initial) {
+        if (isTrue(initial) && isDef(vnode.parent)) {
+            vnode.parent.data.pendingInsert = queue;
+          } else {
+            for (var i = 0; i < queue.length; ++i) {
+              queue[i].data.hook.insert(queue[i]);
+            }
+          }
     }
 
     return function patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
@@ -134,8 +157,11 @@ function createPatchFunction(backend) {
             if (isDef(parentElm$1)) {
                 removeVnodes(parentElm$1, [oldVnode], 0, 0)
             } else if (isDef(oldVnode.tag)) {
-
+                console.log(oldVnode.tag)
             }
+
+            invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch)
+            return vnode.elm
         }
     }
 }

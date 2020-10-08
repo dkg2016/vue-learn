@@ -6,6 +6,20 @@ var ASSET_TYPES = [
     'filter'
 ]
 
+var LIFECYCLE_HOOKS = [
+    'beforeCreate',
+    'created',
+    'beforeMount',
+    'mounted',
+    'beforeUpdate',
+    'updated',
+    'beforeDestroy',
+    'destroyed',
+    'activated',
+    'deactivated',
+    'errorCaptured'
+  ];
+
 
 var defaultStrat = function (parentVal, childVal) {
     return childVal === undefined ?
@@ -19,6 +33,39 @@ var strats = Object.create(null)
 strats.data = function (parentVal, childVal, vm) {
     return mergeDataOrFn(parentVal, childVal, vm)
 }
+
+function mergeHook (
+    parentVal,
+    childVal
+) {
+    return childVal
+        ? parentVal
+            ? parentVal.concat(childVal)
+            : Array.isArray(childVal)
+                ? childVal
+                : [childVal]
+        : parentVal
+}
+LIFECYCLE_HOOKS.forEach(function (hook) {
+    strats[hook] = mergeHook
+})
+
+function mergeAssets (
+    parentVal,
+    childVal,
+    vm,
+    key
+) {
+    var res = Object.create(parentVal || null)
+    if (childVal) {
+        return extend(res, childVal)
+    } else {
+        return res
+    }
+}
+ASSET_TYPES.forEach(function (type) {
+    strats[type + 's'] = mergeAssets;
+  });
 
 
 // Vue 构造函数
@@ -34,6 +81,7 @@ var uid$3 = 0
 
 function initMixin(Vue) {
     Vue.prototype._init = function (options) {
+        debugger
         var vm = this
         vm._uid = uid$3++
         vm._isVue = true
@@ -62,6 +110,8 @@ function initMixin(Vue) {
         // 初始化数据
         initState(vm)
 
+        callHook(vm, 'created');
+
         if (vm.$options.el) {
             vm.$mount(vm.$options.el)
         }
@@ -86,7 +136,7 @@ function initInternalComponent (vm, options) {
 
     // opts._renderChildren = vnodeComponentOptions.children;
     // opts._componentTag = vnodeComponentOptions.tag;
-    debugger
+    // debugger
     if (options.render) {
         opts.render = options.render;
         opts.staticRenderFns = options.staticRenderFns;
@@ -516,8 +566,23 @@ lifecycleMixin(Vue)
 renderMixin(Vue)
 initGlobalAPI(Vue)
 
-function callHook() {
+function callHook(vm, hook) {
+    // console.log(hook)
+    // console.log(vm.$options)
+    pushTarget()
 
+    var handlers = vm.$options[hook]
+    if (handlers) {
+        for (var i = 0, j = handlers.length; i < j;i++) {
+            try {
+                handlers[i].call(vm)
+            } catch (e) {
+                throw e
+            }
+        }
+    }
+
+    popTarget()
 }
 
 Vue.config.isReservedTag = function (tag) {
