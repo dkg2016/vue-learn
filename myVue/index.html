@@ -20,17 +20,35 @@
 </body>
 <script src="./vue.sim.js"></script>
 <script>
+  let template = {
+    name: 'kg',
+    data () {
+      return {
+        msg: 'kg'
+      }
+    },
+    render: function (h) {
+      return h('div',{
+        attrs: {
+          id: 'component'
+        }
+      },this.msg)
+    }
+  }
   let vm = new Vue({
       el: '#app',
       data: {
         message: 'hello world'
       },
+      // render: function (h) {
+      //   return h(template)
+      // },
       render: function (h) {
         return h('div', {
           attrs: {
             id: 'app'
           }
-        }, [h('span',{id:'2'},'123'),this.message])
+        }, [h('span',{id:'2'},'span '), this.message])
       }
   })
 </script>

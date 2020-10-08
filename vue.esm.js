@@ -7288,7 +7288,6 @@ function createPatchFunction (backend) {
           oldElm._leaveCb ? null : parentElm$1,
           nodeOps.nextSibling(oldElm)
         );
-        debugger
 
         // update parent placeholder node element, recursively
         if (isDef(vnode.parent)) {

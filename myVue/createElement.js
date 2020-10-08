@@ -47,9 +47,10 @@ function _createElement(
         } else if (isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
             vnode = createComponent(Ctor, data, context, children, tag)
         } else {
-            vnode = new VNode(tag, data, children, undefined, indefined, context)
+            vnode = new VNode(tag, data, children, undefined, undefined, context)
         }
     } else {
+        // 组件生成 VNode
         vnode = createComponent(tag, data, context, children)
     }
 
@@ -107,10 +108,106 @@ function normalizeArrayChildren(children, nestedIndex) {
     return res
 }
 
-function createComponent () {
+function createComponent(
+    Ctor,
+    data,
+    context,
+    children,
+    tag
+) {
+    if (isUndef(Ctor)) {
+        return
+    }
+
+    var baseCtor = context.$options._base
+
+    if (isObject(Ctor)) {
+        Ctor = baseCtor.extend(Ctor)
+    }
+
+    data = data || {}
+    installComponentHooks(data)
+
+    var name = Ctor.options.name || tag
+
+    var vnode = new VNode(
+        ("vue-component-" + (Ctor.cid) + (name ? ("-" + name) : '')), // tag
+        data, undefined, undefined, undefined, context,
+        { Ctor: Ctor, propsData: {}, listeners: {}, tag: tag, children: children }, // 组件对象
+        asyncFactory = undefined
+    )
+
+    return vnode
 
 }
 
+var componentVNodeHooks = {
+    init: function init(
+        vnode,
+        hydrating,
+        parentElm,
+        refElm
+    ) {
+        if (
+            vnode.componentInstance &&
+            !vnode.componentInstance._isDestroyed &&
+            vnode.data.keepAlive
+        ) {
+
+        } else {
+
+            var child = vnode.componentInstance = createComponentInstanceForVnode(
+                vnode,
+                activeInstance,
+                parentElm,
+                refElm
+            )
+            console.log('child', child)
+            child.$mount(hydrating ? vnode.elm : undefined, hydrating)
+        }
+    },
+
+    prepatch: function prepatch() {
+
+    },
+
+    insert: function insert() {
+
+    },
+
+    destroy: function destroy() {
+
+    }
+}
+var hooksToMerge = Object.keys(componentVNodeHooks)
+
+function createComponentInstanceForVnode (
+    vnode,
+    parent,
+    parentElm,
+    refElm
+) {
+    var options = {
+        _isComponent: true,
+        parent: parent,
+        _parentVnode: vnode,
+        _parentElm: parentElm || null,
+        _refElm: refElm || null
+    }
+
+    return new vnode.componentOptions.Ctor(options)
+}
+
+// 安装组件 patch 过程中的钩子函数
+function installComponentHooks(data) {
+    var hooks = data.hook || (data.hook = {})
+
+    for (var i = 0; i < hooksToMerge.length; i++) {
+        var key = hooksToMerge[i]
+
+        hooks[key] = componentVNodeHooks[key]
+    }
+}
 
 function createEmptyVNode(text) {
     if (text === void 0) text = ''

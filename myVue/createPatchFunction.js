@@ -32,6 +32,10 @@ function createPatchFunction(backend) {
         ownerArray,
         index
     ) {
+        if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
+            return
+        }
+
         var data = vnode.data
         var children = vnode.children
         var tag = vnode.tag
@@ -60,9 +64,40 @@ function createPatchFunction(backend) {
         }
     }
 
+    function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
+        var i = vnode.data
+        // debugger
+        if (isDef(i)) {
+            if (isDef(i = i.hook) && isDef(i = i.init)) {
+                i(vnode, false, parentElm, refElm)
+            }
+        }
+    }
+
     function insert (parent, elm, ref$$1) {
         if (isDef(parent)) {
             nodeOps.appendChild(parent, elm)
+        }
+    }
+
+    function removeVnodes (parentElm, vnodes, startIdx, endIdx) {
+        debugger
+        for (; startIdx <= endIdx; ++startIdx) {
+            var ch = vnodes[startIdx]
+            if (isDef(ch)) {
+                if (isDef(ch.tag)) {
+
+                } else {
+                    removeNode(ch.elm)
+                }
+            }
+        }
+    }
+
+    function removeNode(el) {
+        var parent = nodeOps.parentNode(el)
+        if (isDef(parent)) {
+            nodeOps.removeChild(parent, el);
         }
     }
 
@@ -91,7 +126,16 @@ function createPatchFunction(backend) {
                 parentElm$1,
                 nodeOps.nextSibling(oldElm)
             )
-            // console.log(vnode)
+
+            if (isDef(vnode.parent)) {
+
+            }
+
+            if (isDef(parentElm$1)) {
+                removeVnodes(parentElm$1, [oldVnode], 0, 0)
+            } else if (isDef(oldVnode.tag)) {
+
+            }
         }
     }
 }

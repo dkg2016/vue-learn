@@ -40,7 +40,7 @@ function initMixin(Vue) {
 
         // 组件 init
         if (options && options._isComponent) {
-
+            initInternalComponent(vm, options)
         } else {
             // 合并配置
             // vm.constructor.options => Vue.options
@@ -65,6 +65,31 @@ function initMixin(Vue) {
         if (vm.$options.el) {
             vm.$mount(vm.$options.el)
         }
+    }
+}
+
+function initInternalComponent (vm, options) {
+    var opts = vm.$options = Object.create(vm.constructor.options)
+
+    var parentVnode = options._parentVnode
+
+    opts.parent = options.parent
+    opts._parentVnode = parentVnode
+
+    opts._parentElm = options._parentElm
+    opts._refElm = options._refElm
+
+    var vnodeComponentOptions = parentVnode.vnodeComponentOptions
+    // opts.propsData = vnodeComponentOptions.propsData;
+  
+    // opts._parentListeners = vnodeComponentOptions.listeners;
+
+    // opts._renderChildren = vnodeComponentOptions.children;
+    // opts._componentTag = vnodeComponentOptions.tag;
+    debugger
+    if (options.render) {
+        opts.render = options.render;
+        opts.staticRenderFns = options.staticRenderFns;
     }
 }
 
@@ -208,6 +233,9 @@ function lifecycleMixin(Vue) {
 
         var prevVnode = vm._vnode
 
+        var prevActiveInstance = activeInstance;
+        activeInstance = vm;
+
         vm._vnode = vnode
         if (!prevVnode) {
             vm.$el = vm.__patch__(
@@ -218,6 +246,7 @@ function lifecycleMixin(Vue) {
         } else {
             vm.$el = vm.__patch__(prevVnode, vnode)
         }
+        activeInstance = prevActiveInstance
     }
 
     Vue.prototype.$forceUpdate = function () {
@@ -256,6 +285,8 @@ function renderMixin(Vue) {
         } catch (e) {
             console.log(e)
         }
+
+        vnode.parent = _parentVnode
         return vnode
     }
 
@@ -288,8 +319,60 @@ function initGlobalAPI(Vue) {
         Vue.options[type + 's'] = Object.create(null)
     })
     Vue.options._base = Vue
+
+    initExtend(Vue)
 }
 
+function initExtend (Vue) {
+    Vue.cid  = 0
+    var cid = 1
+
+    Vue.extend = function (extendOptions) {
+        extendOptions = extendOptions || {}
+
+        var Super = this // Vue
+        var SuperId = Super.cid
+
+        var cachedCtors = extendOptions._Ctor || (extendOptions._Ctor = {})
+
+        if (cachedCtors[SuperId]) {
+            return cachedCtors[SuperId]
+        }
+
+        var name = extendOptions.name || Super.options.name
+
+        var Sub = function VueComponent (options) {
+            this._init(options)
+        }
+
+        Sub.prototype = Object.create(Super.prototype)
+
+        Sub.prototype.constructor = Sub
+        Sub.cid = cid++
+
+        Sub.options = mergeOptions(Super.options, extendOptions)
+
+        Sub['super'] = Super
+
+        Sub.extend = Super.extend
+
+        ASSET_TYPES.forEach(function (type) {
+            Sub[type] = Super[type]
+        })
+
+        if (name) {
+            Sub.options.components[name] = Sub
+        }
+
+        Sub.superOptions = Super.options
+        Sub.extendOptions = extendOptions
+        Sub.sealedOptions = extend({}, Sub.options)
+
+        cachedCtors[SuperId] = Sub
+        console.dir('Sub',Sub)
+        return Sub
+    }
+}
 
 // 
 
@@ -344,6 +427,11 @@ function mergeOptions(parent = {}, child, vm) {
     }
     return options
 }
+
+var activeInstance = null;
+
+// 是否正在更新子组件
+var isUpdatingChildComponent = false;
 
 function initLifecycle(vm) {
     var options = vm.$options
@@ -463,6 +551,10 @@ var nodeOps = Object.freeze({
 
     nextSibling: function (node) {
         return node.nextSibling
+    },
+
+    removeChild: function (node, child) {
+        node.removeChild(child)
     }
 })
 
