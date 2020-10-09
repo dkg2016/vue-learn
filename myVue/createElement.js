@@ -167,6 +167,7 @@ var componentVNodeHooks = {
                 parentElm,
                 refElm
             )
+            debugger
             child.$mount(hydrating ? vnode.elm : undefined, hydrating)
         }
     },

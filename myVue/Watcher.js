@@ -45,7 +45,7 @@ var Watcher = function Watcher(
             this.getter = function () {}
         }
     }
-
+    debugger
     this.value = this.lazy ? undefined : this.get()
 }
 
