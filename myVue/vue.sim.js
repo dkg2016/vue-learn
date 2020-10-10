@@ -371,6 +371,7 @@ function initGlobalAPI(Vue) {
     Vue.options._base = Vue
 
     initExtend(Vue)
+    initAssetRegisters(Vue)
 }
 
 function initExtend (Vue) {
@@ -422,6 +423,14 @@ function initExtend (Vue) {
         console.dir('Sub',Sub)
         return Sub
     }
+}
+
+function initAssetRegisters (Vue) {
+    ASSET_TYPES.forEach(function (type) {
+        Vue[type] = function (id, definition) {
+            
+        }
+    })
 }
 
 // 

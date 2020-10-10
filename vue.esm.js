@@ -5784,7 +5784,10 @@ function initComputed$1 (Comp) {
 /*  */
 
 
-// 在 initGlobalAPI 中执行, 给 Vue 定义一些属性
+// 在 initGlobalAPI 中执行, 给 Vue 定义一些方法
+// Vue.component
+// Vue.directive
+// Vue.filter
 function initAssetRegisters (Vue) {
   /**
    * Create asset registration methods.
