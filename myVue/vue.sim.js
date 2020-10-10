@@ -428,7 +428,11 @@ function initExtend (Vue) {
 function initAssetRegisters (Vue) {
     ASSET_TYPES.forEach(function (type) {
         Vue[type] = function (id, definition) {
-            
+            if (!definition) {
+                return this.options[type + 's'][id]
+            } else {
+                
+            }
         }
     })
 }
