@@ -25,7 +25,7 @@ function isObject(obj) {
 }
 
 function isPlainObject(obj) {
-    return Object.prototype.toString.call(obj) === '[object object]'
+    return Object.prototype.toString.call(obj) === '[object Object]'
 }
 
 function isNative(Ctor) {
@@ -149,4 +149,16 @@ function def (obj, key, val, enumerable) {
         writable: true,
         configurable: true
     })
+}
+
+var hasProto = '__proto__' in  {}
+
+function protoAugment (target, src, keys) {
+    target.__proto__ = src
+}
+function copyAugment (target, src, keys) {
+    for (var i =0, l = keys.length; i < l; i++) {
+        var key = keys[i]
+        def(target, key, src[key])
+    }
 }

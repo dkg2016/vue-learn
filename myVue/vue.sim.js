@@ -1,4 +1,51 @@
 // 配置、常量
+var arrayProto = Array.prototype
+var arrayMethods = Object.create(arrayProto)
+
+var methodsToPatch = [
+    'push',
+    'pop',
+    'shift',
+    'unshift',
+    'splice',
+    'sort',
+    'reverse'
+]
+methodsToPatch.forEach(function (method) {
+    var original = arrayProto[method]
+
+    def(arrayMethods, method, function mutator () {
+        var args = [], len = arguments.length
+        while(len--) {
+            args[len] = arguments[len]
+        }
+        
+        var result = original.apply(this, args)
+
+        var ob = this.__ob__
+        var inserted
+
+        switch(method) {
+            case 'push':
+            case 'unshift':
+                inserted = args
+                break
+            case 'splice':
+                inserted = args.splice(2)
+                break
+        }
+
+        if (inserted) {
+            ob.observeArray(inserted)
+        }
+
+        ob.dep.notify()
+        return result
+    })
+})
+
+var arrayKeys = Object.getOwnPropertyNames(arrayMethods)
+
 var config = {}
 var ASSET_TYPES = [
     'component',
@@ -81,7 +128,6 @@ var uid$3 = 0
 
 function initMixin(Vue) {
     Vue.prototype._init = function (options) {
-        debugger
         var vm = this
         vm._uid = uid$3++
         vm._isVue = true
@@ -550,6 +596,7 @@ function initRender(vm) {
 }
 
 function initState(vm) {
+    debugger
     vm._watchers = []
     var opts = vm.$options
     
@@ -562,7 +609,7 @@ function initState(vm) {
 function initData (vm) {
     var data = vm.$options.data
     data = vm._data = typeof data === 'function' ? getData(data, vm) : data || {}
-
+    // debugger
     var keys = Object.keys(data)
     var i = keys.length
     
@@ -588,7 +635,7 @@ function observe(value, asRootData) {
     }
 
     var ob
-
+    // debugger
     if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
         ob = value.__ob__
     } else if (
@@ -617,12 +664,17 @@ var Observer = function Observer (value) {
     this.value = value
     this.dep = new Dep()
     this.vmCount = 0
-
+    
     def(value, '__ob__', this)
-
+    
     if (Array.isArray(value)) {
-
+        var augment = hasProto
+        ? protoAugment
+        : copyAugment
+        augment(value, arrayMethods, arrayKeys)
+        this.observeArray(value)
     } else {
+        // debugger
         this.walk(value)
     }
 }

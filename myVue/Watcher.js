@@ -33,7 +33,8 @@ var Watcher = function Watcher(
     this.newDeps = []
 
     this.depIds = new _Set()
-    this.newDeps = new _Set()
+
+    this.newDepIds = new _Set()
 
     this.expression = expOrFn.toString()
 
@@ -45,7 +46,7 @@ var Watcher = function Watcher(
             this.getter = function () {}
         }
     }
-    debugger
+
     this.value = this.lazy ? undefined : this.get()
 }
 
