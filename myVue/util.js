@@ -141,3 +141,12 @@ function isDef (v) {
 function isUndef (v) {
     return v === undefined || v === null
 }
+
+function def (obj, key, val, enumerable) {
+    Object.defineProperty(obj, key, {
+        value: val,
+        enumerable: !!enumerable,
+        writable: true,
+        configurable: true
+    })
+}

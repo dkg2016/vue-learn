@@ -570,6 +570,8 @@ function initData (vm) {
         var key = keys[i]
         proxy(vm, "_data", key)
     }
+
+    observe(data, true)
 }
 
 function getData(data, vm) {
@@ -577,6 +579,64 @@ function getData(data, vm) {
         return data.call(vm, vm)
     } catch (e) {
         console.log('初始化data出错')
+    }
+}
+
+function observe(value, asRootData) {
+    if (!isObject(value) || value instanceof VNode) {
+        return
+    }
+
+    var ob
+
+    if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
+        ob = value.__ob__
+    } else if (
+        shouldObserve &&
+        (Array.isArray(value) || isPlainObject(value)) &&
+        Object.isExtensible(value) &&
+        !value._isVue
+    ) {
+        ob = new Observer(value)
+    }
+
+    if (asRootData && ob) {
+        ob.vmCount++
+    }
+
+    return ob
+}
+
+var shouldObserve = true
+
+function toggleObserving (value) {
+    shouldObserve = value
+}
+
+var Observer = function Observer (value) {
+    this.value = value
+    this.dep = new Dep()
+    this.vmCount = 0
+
+    def(value, '__ob__', this)
+
+    if (Array.isArray(value)) {
+
+    } else {
+        this.walk(value)
+    }
+}
+
+Observer.prototype.walk = function walk (obj) {
+    var keys = Object.keys(obj)
+    for (var i = 0; i< keys.length;i++) {
+        defineReactive(obj, keys[i])
+    }
+}
+
+Observer.prototype.observeArray = function observeArray (items) {
+    for (var i = 0,l = items.length; i< l; i++) {
+        observe(items[i])
     }
 }
 
