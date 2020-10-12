@@ -606,7 +606,7 @@ function initRender(vm) {
 }
 
 function initState(vm) {
-    // debugger
+    debugger
     vm._watchers = []
     var opts = vm.$options
     

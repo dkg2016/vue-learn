@@ -35,7 +35,7 @@ var Watcher = function Watcher(
     this.depIds = new _Set()
 
     this.newDepIds = new _Set()
-
+    
     this.expression = expOrFn.toString()
 
     if (typeof expOrFn === 'function') {
