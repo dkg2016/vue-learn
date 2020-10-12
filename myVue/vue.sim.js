@@ -1,4 +1,14 @@
 // 配置、常量
+var MAX_UPDATE_COUNT = 100;
+
+var queue = [];
+var activatedChildren = [];
+var has = {};
+var circular = {};
+var waiting = false;
+var flushing = false;
+var index = 0;
+
 var arrayProto = Array.prototype
 var arrayMethods = Object.create(arrayProto)
 
@@ -596,7 +606,7 @@ function initRender(vm) {
 }
 
 function initState(vm) {
-    debugger
+    // debugger
     vm._watchers = []
     var opts = vm.$options
     

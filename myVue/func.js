@@ -44,7 +44,7 @@ function defineReactive(
 
         set: function reactiveSetter(newVal) {
             var value = getter ? getter.call(obj) : val
-
+            // debugger
             if (newVal === value || (newVal !== newVal && value !== value)) {
                 return
             }
