@@ -24,18 +24,19 @@ var methodsToPatch = [
 methodsToPatch.forEach(function (method) {
     var original = arrayProto[method]
 
-    def(arrayMethods, method, function mutator () {
-        var args = [], len = arguments.length
-        while(len--) {
+    def(arrayMethods, method, function mutator() {
+        var args = [],
+            len = arguments.length
+        while (len--) {
             args[len] = arguments[len]
         }
-        
+
         var result = original.apply(this, args)
 
         var ob = this.__ob__
         var inserted
 
-        switch(method) {
+        switch (method) {
             case 'push':
             case 'unshift':
                 inserted = args
@@ -63,6 +64,9 @@ var ASSET_TYPES = [
     'filter'
 ]
 
+var RANGE_TOKEN = '__r';
+var CHECKBOX_RADIO_TOKEN = '__c';
+
 var LIFECYCLE_HOOKS = [
     'beforeCreate',
     'created',
@@ -75,7 +79,7 @@ var LIFECYCLE_HOOKS = [
     'activated',
     'deactivated',
     'errorCaptured'
-  ];
+];
 
 
 var defaultStrat = function (parentVal, childVal) {
@@ -91,23 +95,23 @@ strats.data = function (parentVal, childVal, vm) {
     return mergeDataOrFn(parentVal, childVal, vm)
 }
 
-function mergeHook (
+function mergeHook(
     parentVal,
     childVal
 ) {
-    return childVal
-        ? parentVal
-            ? parentVal.concat(childVal)
-            : Array.isArray(childVal)
-                ? childVal
-                : [childVal]
-        : parentVal
+    return childVal ?
+        parentVal ?
+        parentVal.concat(childVal) :
+        Array.isArray(childVal) ?
+        childVal :
+        [childVal] :
+        parentVal
 }
 LIFECYCLE_HOOKS.forEach(function (hook) {
     strats[hook] = mergeHook
 })
 
-function mergeAssets (
+function mergeAssets(
     parentVal,
     childVal,
     vm,
@@ -122,7 +126,42 @@ function mergeAssets (
 }
 ASSET_TYPES.forEach(function (type) {
     strats[type + 's'] = mergeAssets;
-  });
+});
+
+function updateListeners (
+    on,
+    oldOn,
+    add,
+    remove$$1,
+    vm
+) {
+    var name, def, cur, old, event;
+
+    for (name in on) {
+        def = cur = on[name]
+        old = oldOn[name]
+        event = normalizeEvent(name)
+
+        if (idUndef(cur)) {
+
+        } else if (isUndef(old)) {
+            if (isUndef(cur.fns)) {
+                cur = on[name] = createFnInvoker(cur)
+            }
+            add(event.name, cur, event.once, event.capture, event.passive, event.params)
+        } else if (cur !== old) {
+            old.fns = cur
+            on[name] = old
+        }
+    }
+
+    for (name in oldOn) {
+        if (isUndef(on[name])) {
+            event = normalizeEvent(name)
+            remove$$1(event.name, oldOn[name], event.capture)
+        }
+    }
+}
 
 
 // Vue 构造函数
@@ -174,7 +213,7 @@ function initMixin(Vue) {
     }
 }
 
-function initInternalComponent (vm, options) {
+function initInternalComponent(vm, options) {
     var opts = vm.$options = Object.create(vm.constructor.options)
 
     var parentVnode = options._parentVnode
@@ -187,7 +226,7 @@ function initInternalComponent (vm, options) {
 
     var vnodeComponentOptions = parentVnode.vnodeComponentOptions
     // opts.propsData = vnodeComponentOptions.propsData;
-  
+
     // opts._parentListeners = vnodeComponentOptions.listeners;
 
     // opts._renderChildren = vnodeComponentOptions.children;
@@ -430,8 +469,8 @@ function initGlobalAPI(Vue) {
     initAssetRegisters(Vue)
 }
 
-function initExtend (Vue) {
-    Vue.cid  = 0
+function initExtend(Vue) {
+    Vue.cid = 0
     var cid = 1
 
     Vue.extend = function (extendOptions) {
@@ -448,7 +487,7 @@ function initExtend (Vue) {
 
         var name = extendOptions.name || Super.options.name
 
-        var Sub = function VueComponent (options) {
+        var Sub = function VueComponent(options) {
             this._init(options)
         }
 
@@ -476,12 +515,12 @@ function initExtend (Vue) {
         Sub.sealedOptions = extend({}, Sub.options)
 
         cachedCtors[SuperId] = Sub
-        console.dir('Sub',Sub)
+        console.dir('Sub', Sub)
         return Sub
     }
 }
 
-function initAssetRegisters (Vue) {
+function initAssetRegisters(Vue) {
     ASSET_TYPES.forEach(function (type) {
         Vue[type] = function (id, definition) {
             if (!definition) {
@@ -493,7 +532,10 @@ function initAssetRegisters (Vue) {
                 }
 
                 if (type === 'directive' && typeof definition === 'function') {
-                    definition = {bind: definition, update: definition}
+                    definition = {
+                        bind: definition,
+                        update: definition
+                    }
                 }
 
                 this.options[type + 's'][id] = definition
@@ -594,7 +636,7 @@ function initEvents(vm) {
 function initRender(vm) {
     vm._vnode = null
     vm._staticTrees = null
-    
+
     var options = vm.$options
 
 
@@ -606,23 +648,23 @@ function initRender(vm) {
 }
 
 function initState(vm) {
-    debugger
+    // debugger
     vm._watchers = []
     var opts = vm.$options
-    
+
     // 初始化 data
     if (opts.data) {
         initData(vm)
     }
 }
 
-function initData (vm) {
+function initData(vm) {
     var data = vm.$options.data
     data = vm._data = typeof data === 'function' ? getData(data, vm) : data || {}
     // debugger
     var keys = Object.keys(data)
     var i = keys.length
-    
+
     while (i--) {
         var key = keys[i]
         proxy(vm, "_data", key)
@@ -666,21 +708,21 @@ function observe(value, asRootData) {
 
 var shouldObserve = true
 
-function toggleObserving (value) {
+function toggleObserving(value) {
     shouldObserve = value
 }
 
-var Observer = function Observer (value) {
+var Observer = function Observer(value) {
     this.value = value
     this.dep = new Dep()
     this.vmCount = 0
-    
+
     def(value, '__ob__', this)
-    
+
     if (Array.isArray(value)) {
-        var augment = hasProto
-        ? protoAugment
-        : copyAugment
+        var augment = hasProto ?
+            protoAugment :
+            copyAugment
         augment(value, arrayMethods, arrayKeys)
         this.observeArray(value)
     } else {
@@ -689,15 +731,15 @@ var Observer = function Observer (value) {
     }
 }
 
-Observer.prototype.walk = function walk (obj) {
+Observer.prototype.walk = function walk(obj) {
     var keys = Object.keys(obj)
-    for (var i = 0; i< keys.length;i++) {
+    for (var i = 0; i < keys.length; i++) {
         defineReactive(obj, keys[i])
     }
 }
 
-Observer.prototype.observeArray = function observeArray (items) {
-    for (var i = 0,l = items.length; i< l; i++) {
+Observer.prototype.observeArray = function observeArray(items) {
+    for (var i = 0, l = items.length; i < l; i++) {
         observe(items[i])
     }
 }
@@ -718,7 +760,7 @@ function callHook(vm, hook) {
 
     var handlers = vm.$options[hook]
     if (handlers) {
-        for (var i = 0, j = handlers.length; i < j;i++) {
+        for (var i = 0, j = handlers.length; i < j; i++) {
             try {
                 handlers[i].call(vm)
             } catch (e) {
@@ -734,53 +776,11 @@ Vue.config.isReservedTag = function (tag) {
     return isHTMLTag(tag)
 }
 
-// patch
-var nodeOps = Object.freeze({
-    createElement: function (tagName, vnode) {
-        var elm = document.createElement(tagName)
-        if (tagName !== 'select') {
-            return elm
-        }
-    },
 
-    appendChild: function (node, child) {
-        node.appendChild(child)
-    },
-
-    createTextNode: function (text) {
-        return document.createTextNode(text)
-    },
-
-    tagName: function (node) {
-        return node.tagName
-    },
-
-    parentNode: function (node) {
-        return node.parentNode
-    },
-
-    nextSibling: function (node) {
-        return node.nextSibling
-    },
-
-    removeChild: function (node, child) {
-        node.removeChild(child)
-    }
+var patch = createPatchFunction({
+    nodeOps: nodeOps,
+    modules: modules
 })
-
-var modules = [
-    // attrs,
-    // klass,
-    // events,
-    // domProps,
-    // style,
-    // transition,
-    // ref,
-    // directives
-]
-
-
-var patch = createPatchFunction({nodeOps: nodeOps, modules: modules})
 
 Vue.prototype.__patch__ = patch
 

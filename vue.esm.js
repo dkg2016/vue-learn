@@ -6558,7 +6558,7 @@ function createPatchFunction (backend) {
     for (j = 0; j < modules.length; ++j) {
       if (isDef(modules[j][hooks[i]])) {
         cbs[hooks[i]].push(modules[j][hooks[i]]);
-        // cbs['create'].push(attrs['hookscreate');
+        // cbs['create'].push(attrs['create'));
       }
     }
   }

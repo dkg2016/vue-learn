@@ -17,7 +17,7 @@
 </head>
 <body>
   <div id="app"></div>
-  <button onclick="vm.message = 'Hello K'">按钮</button>
+  <!-- <button onclick="vm.message = 'Hello K'">按钮</button> -->
 </body>
 <script src="./vue.sim.js"></script>
 <script>
@@ -44,7 +44,17 @@
       //   return h(template)
       // }
       render: function (h) {
-        return h('div', {}, this.message)
+        return h('div', {
+          attrs: {
+            id: 'testId',
+            class: 'test_class'
+          },
+          on: {
+            click: function () {
+              console.log('click')
+            }
+          }
+        }, this.message)
       }
   })
 </script>

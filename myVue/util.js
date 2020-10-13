@@ -130,19 +130,19 @@ function isTrue(v) {
     return v === true
 }
 
-function isFalse (v) {
+function isFalse(v) {
     return v === false
 }
 
-function isDef (v) {
+function isDef(v) {
     return v !== undefined && v !== null
 }
 
-function isUndef (v) {
+function isUndef(v) {
     return v === undefined || v === null
 }
 
-function def (obj, key, val, enumerable) {
+function def(obj, key, val, enumerable) {
     Object.defineProperty(obj, key, {
         value: val,
         enumerable: !!enumerable,
@@ -151,14 +151,29 @@ function def (obj, key, val, enumerable) {
     })
 }
 
-var hasProto = '__proto__' in  {}
+var hasProto = '__proto__' in {}
 
-function protoAugment (target, src, keys) {
+function protoAugment(target, src, keys) {
     target.__proto__ = src
 }
-function copyAugment (target, src, keys) {
-    for (var i =0, l = keys.length; i < l; i++) {
+
+function copyAugment(target, src, keys) {
+    for (var i = 0, l = keys.length; i < l; i++) {
         var key = keys[i]
         def(target, key, src[key])
     }
 }
+
+var xlinkNS = 'http://www.w3.org/1999/xlink';
+
+var isXlink = function (name) {
+    return name.charAt(5) === ':' && name.slice(0, 5) === 'xlink'
+};
+
+var getXlinkProp = function (name) {
+    return isXlink(name) ? name.slice(6, name.length) : ''
+};
+
+var isFalsyAttrValue = function (val) {
+    return val == null || val === false
+};

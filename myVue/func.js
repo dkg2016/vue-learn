@@ -112,7 +112,9 @@ function resolveAsset(
     }
 
     var PascalCaseId = capitalize(camelizedId)
-    if (hasOwn(assets, PascalCaseId)) {return assets[PascalCaseId]}
+    if (hasOwn(assets, PascalCaseId)) {
+        return assets[PascalCaseId]
+    }
 
     var res = assets[id] || assets[camelizedId] || assets[PascalCaseId]
 
@@ -136,6 +138,21 @@ var camelize = cached(function (str) {
 
 var capitalize = cached(function (str) {
     return str.charAt(0).toUpperCase() + str.slice(1)
+})
+
+var normalizeEvent = cached(function (name) {
+    var passive = name.charAt(0) === '&'
+    name = passive ? name.slice(1) : name
+    var once$$1 = name.charAt(0) === '~'
+    name = once$$1 ? name.slice(1) : name;
+    var capture = name.charAt(0) === '!';
+    name = capture ? name.slice(1) : name;
+    return {
+        name: name,
+        once: once,
+        capture: capture,
+        passive: passive
+    }
 })
 
 function makeMap(str, expectsLowerCase) {
@@ -166,3 +183,32 @@ var isHTMLTag = makeMap('html,body,base,head,link,meta,style,title,' +
     'output,progress,select,textarea,' +
     'details,dialog,menu,menuitem,summary,' +
     'content,element,shadow,template,blockquote,iframe,tfoot')
+
+var isBooleanAttr = makeMap(
+    'allowfullscreen,async,autofocus,autoplay,checked,compact,controls,declare,' +
+    'default,defaultchecked,defaultmuted,defaultselected,defer,disabled,' +
+    'enabled,formnovalidate,hidden,indeterminate,inert,ismap,itemscope,loop,multiple,' +
+    'muted,nohref,noresize,noshade,novalidate,nowrap,open,pauseonexit,readonly,' +
+    'required,reversed,scoped,seamless,selected,sortable,translate,' +
+    'truespeed,typemustmatch,visible'
+);
+
+var isEnumeratedAttr = makeMap('contenteditable,draggable,spellcheck');
+
+function createFnInvoker (fns) {
+    function invoker () {
+        var arguments$1 = arguments
+
+        var fns = invoker.fns
+        if (Array.isArray(fns)) {
+            var cloned = fns.slice();
+            for (var i = 0; i < cloned.length; i++) {
+                cloned[i].apply(null, arguments$1)
+            }
+        } else {
+            return fns.apply(null, arguments)
+        }
+    }
+    invoker.fns = fns
+    return invoker
+}
