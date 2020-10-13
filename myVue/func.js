@@ -149,7 +149,7 @@ var normalizeEvent = cached(function (name) {
     name = capture ? name.slice(1) : name;
     return {
         name: name,
-        once: once,
+        once: once$$1,
         capture: capture,
         passive: passive
     }
