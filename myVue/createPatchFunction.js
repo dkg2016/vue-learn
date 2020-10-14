@@ -220,9 +220,9 @@ function normalizeEvents(on) {
 
 var target$1
 
-function createOnceHandler (handler, event, capture) {
+function createOnceHandler(handler, event, capture) {
     var _target = target$1
-    return function onceHandler () {
+    return function onceHandler() {
         var res = handler.apply(null, arguments)
         if (res !== null) {
             remove$2(event, onceHandler, capture, _target)
@@ -249,7 +249,7 @@ function add$1(
     )
 }
 
-function remove$2 (
+function remove$2(
     event,
     handler,
     capture,
@@ -280,11 +280,97 @@ var events = {
     update: updateDOMListeners
 }
 
+function updateDOMProps(oldVnode, vnode) {
+    if (isUndef(oldVnode.data.domProps) && isUndef(vnode.data.domProps)) {
+        return
+    }
+
+    var key, cur
+    var elm = vnode.elm
+    var oldProps = oldVnode.data.domProps || {}
+    var props = vnode.data.domProps || {}
+
+    if (isDef(props.__ob__)) {
+        props = vnode.data.domProps = extend({}, props)
+    }
+
+    for (key in oldProps) {
+        if (isUndef(props[key])) {
+            elm[key] = ''
+        }
+    }
+
+    for (key in props) {
+        cur = props[key]
+
+        if (key === 'textContent' || key === 'innerHTML') {
+            if (vnode.children) {
+                vnode.children.length = 0
+            }
+            if (cur === oldProps[key]) {
+                continue
+            }
+            if (elm.childNodes.length === 1) {
+                elm.removeChild(elm.childNodes[0])
+            }
+        }
+
+        if (key === 'value') {
+            elm._value = cur
+            var strCur = isUndef(cur) ? '' : String(cur)
+            if (shouldUpdateValue(elm, strCur)) {
+                elm.value = strCur
+            }
+        } else {
+            elm[key] = cur
+        }
+    }
+}
+
+function shouldUpdateValue(elm, checkVal) {
+    return (!elm.composing && (
+        elm.tagName === 'OPTION' ||
+        isNotInFocusAndDirty(elm, checkVal) ||
+        isDirtyWithModifliers(elm, checkVal)
+    ))
+}
+
+function isNotInFocusAndDirty(elm, checkVal) {
+    var notInFocus = true
+    try {
+        notInFocus = document.activeElement !== elm;
+    } catch (e) {}
+    return notInFocus && elm.value !== checkVal
+}
+
+function isDirtyWithModifiers (elm, newVal) {
+    var value = elm.value;
+    var modifiers = elm._vModifiers; // injected by v-model runtime
+    if (isDef(modifiers)) {
+      if (modifiers.lazy) {
+        // inputs with lazy should only be updated when not in focus
+        return false
+      }
+      if (modifiers.number) {
+        return toNumber(value) !== toNumber(newVal)
+      }
+      if (modifiers.trim) {
+        return value.trim() !== newVal.trim()
+      }
+    }
+    return value !== newVal
+  }
+
+var domProps = {
+    create: updateDOMProps,
+    update: updateDOMProps
+}
+
 var modules = [
     attrs,
     klass,
     events,
-    // domProps,
+    domProps,
     // style,
     // transition,
     // ref,
@@ -312,6 +398,16 @@ function createPatchFunction(backend) {
 
     function emptyNodeAt(elm) {
         return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
+    }
+
+    function createRmCb (childElm, listeners) {
+        function remove () {
+            if (--remove.listeners === 0) {
+                removeNode(childElm)
+            }
+        }
+        remove.listeners = listeners
+        return remove
     }
 
     function invokeCreateHooks(vnode, insertedVnodeQueue) {
@@ -350,7 +446,7 @@ function createPatchFunction(backend) {
 
             try {
                 createChildren(vnode, children, insertedVnodeQueue)
-                debugger
+                // debugger
                 if (isDef(data)) {
                     invokeCreateHooks(vnode, insertedVnodeQueue)
                 }
@@ -416,14 +512,49 @@ function createPatchFunction(backend) {
 
     function removeAndInvokeRemoveHook(vnode, rm) {
         if (isDef(rm) || isDef(vnode.data)) {
+            var i
+            var listeners = cbs.remove.length + 1
+            if (isDef(rm)) {
+                rm.listeners += listeners
+            } else {
+                rm = createRmCb(vnode.elm, listeners)
+            }
 
+            if (isDef(i = vnode.componentInstance) && isDef(i = i._vnode) && isDef(i.data)) {
+                removeAndInvokeRemoveHook(i, rm)
+            }
+
+            for (i = 0; i < cbs.remove.length; ++i) {
+                cbs.remove[i](vnode, rm)
+            }
+
+            if (isDef(i = vnode.data.hook) && isDef(i = i.remove)) {
+                i(vnode, rm)
+            } else {
+                rm()
+            }
         } else {
             rmmoveNode(vnode.elm)
         }
     }
 
     function invokeDestroyHook(vnode) {
+        var i, j
+        var data = vnode.data
+        if (isDef(data)) {
+            if (isDef(i = data.hook) && isDef(i = i.destroy)) {
+                i(vnode)
+            }
+            for (i=0;i<cbs.destroy.length; ++i) {
+                cbs.destroy[i](vnode)
+            }
+        }
 
+        if (isDef(i = vnode.children)) {
+            for (j = 0; j < vnode.children.length; ++j) {
+                invokeDestroyHook(vnode.children[j])
+            }
+        }
     }
 
     function removeNode(el) {
@@ -490,6 +621,7 @@ function createPatchFunction(backend) {
                 }
                 // debugger
                 if (isDef(parentElm$1)) {
+                    // debugger
                     removeVnodes(parentElm$1, [oldVnode], 0, 0)
                 } else if (isDef(oldVnode.tag)) {
                     console.log(oldVnode.tag)

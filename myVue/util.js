@@ -164,6 +164,11 @@ function copyAugment(target, src, keys) {
     }
 }
 
+function toNumber (val) {
+    var n = parseFloat(val);
+    return isNaN(n) ? val : n
+  }
+
 var xlinkNS = 'http://www.w3.org/1999/xlink';
 
 var isXlink = function (name) {

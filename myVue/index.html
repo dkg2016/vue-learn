@@ -19,6 +19,9 @@
   <div id="app"></div>
   <!-- <button onclick="vm.message = 'Hello K'">按钮</button> -->
 </body>
+<style>
+  .test_class {color:red;}
+</style>
 <script src="./vue.sim.js"></script>
 <script>
   let template = {
@@ -51,9 +54,12 @@
           },
           on: {
             click: function () {
-              console.log('click')
+              console.log('hi k,you see me')
             }
-          }
+          },
+          // domProps: {
+          //   innerHTML:''
+          // }
         }, this.message)
       }
   })

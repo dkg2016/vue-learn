@@ -141,7 +141,7 @@ function updateListeners (
         def = cur = on[name]
         old = oldOn[name]
         event = normalizeEvent(name)
-        debugger
+        // debugger
         if (isUndef(cur)) {
 
         } else if (isUndef(old)) {
