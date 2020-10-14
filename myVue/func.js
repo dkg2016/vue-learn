@@ -121,6 +121,58 @@ function resolveAsset(
     return res
 }
 
+function getPropDefaultValue(vm, prop, key) {
+    if (!hasOwn(prop, 'default')) {
+        return
+    }
+
+    var def = prop.default
+    if (vm && vm.$options.propsData &&
+        vm.$options.propsData[key] === undefined &&
+        vm._props[key] !== undefined
+    ) {
+        return vm._props[key]
+    }
+
+    return typeof def === 'function' && getType(prop.type) !== 'Function' ?
+        def.call(vm) :
+        def
+}
+
+function validateProp(
+    key,
+    propOptions,
+    propsData,
+    vm
+) {
+    var prop = propOptions[key]
+    var absent = !hasOwn(propsData, key)
+    var value = propsData[key]
+
+    var booleanIndex = getTypeIndex(Boolean, prop.type)
+
+    if (booleanIndex > -1) {
+        if (absent && !hasOwn(prop, 'default')) {
+            value = false
+        } else if (value === '' || value === hyphenate(key)) {
+            var stringIndex = getTypeIndex(String, prop.type)
+            if (stringIndex < 0 || booleanIndex < stringIndex) {
+                value = true
+            }
+        }
+    }
+
+    if (value === undefined) {
+        value = getPropDefaultValue(vm, prop, key)
+        var prevShouldObserve = shouldObserve
+        toggleObserving(true)
+        observe(value)
+        toggleObserving(prevShouldObserve)
+    }
+
+    return value
+}
+
 function cached(fn) {
     var cache = Object.create(null)
     return (function cachedFn(str) {
@@ -154,6 +206,11 @@ var normalizeEvent = cached(function (name) {
         passive: passive
     }
 })
+
+var hyphenateRE = /\B([A-Z])/g; // 非单词边界的[A-Z]
+var hyphenate = cached(function (str) {
+    return str.replace(hyphenateRE, '-$1').toLowerCase()
+});
 
 function makeMap(str, expectsLowerCase) {
     var map = Object.create(null)
@@ -195,8 +252,8 @@ var isBooleanAttr = makeMap(
 
 var isEnumeratedAttr = makeMap('contenteditable,draggable,spellcheck');
 
-function createFnInvoker (fns) {
-    function invoker () {
+function createFnInvoker(fns) {
+    function invoker() {
         var arguments$1 = arguments
 
         var fns = invoker.fns

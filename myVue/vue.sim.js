@@ -642,6 +642,30 @@ function initEvents(vm) {
     }
 }
 
+var target
+
+function add (event, fn, once) {
+    if (once) {
+        target.$once(event, fn)
+    } else {
+        target.$on(event, fn)
+    }
+}
+
+function remove$1 (event, fn) {
+    target.$off(event, fn)
+}
+
+function updateComponentListeners(
+    vm,
+    listeners,
+    oldListeners
+) {
+    target = vm
+    updateListeners(listeners, oldListeners || {}, add, remove$1, vm)
+    target = undefined
+}
+
 function initRender(vm) {
     vm._vnode = null
     vm._staticTrees = null

@@ -36,22 +36,25 @@ var VNode = function VNode(
 function sameVnode(a, b) {
     return (
         a.key === b.key && (
-            a.tag === b.tag &&
-            a.isComment === b.isComment &&
-            isDef(a.data) === isDef(b.data) &&
-            sameInputType(a, b)
-        ) || (
-           isTrue(a.isAsyncPlaceholder) &&
-           a.asyncFactory === b.asyncFactory &&
-           isUndef(b.asyncFactory.error) 
+            (
+                a.tag === b.tag &&
+                a.isComment === b.isComment &&
+                isDef(a.data) === isDef(b.data) &&
+                sameInputType(a, b)
+            ) || (
+                isTrue(a.isAsyncPlaceholder) &&
+                a.asyncFactory === b.asyncFactory &&
+                isUndef(b.asyncFactory.error)
+            )
         )
     )
 }
 
 var isTextInputType = makeMap('text,number,password,search,email,tel,url')
+
 function sameInputType(a, b) {
     if (a.tag !== 'input') {
-        return false
+        return true
     }
     var i
     var typeA = isDef(i = a.data) && isDef(i = i.attrs) && i.type

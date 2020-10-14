@@ -566,6 +566,33 @@ function createPatchFunction(backend) {
         }
     }
 
+    function patchVnode (oldVnode, vnode, insertedVnodeQueue, removeOnly) {
+        if (oldVnode === vnode) {
+            return
+        }
+
+        var elm = vnode.elm = oldVnode.elm
+
+        if (isTrue(oldVnode.isAsyncPlaceholder)) {
+            return
+        }
+
+        if (isTrue(vnode.isStatic) &&
+            isTrue(oldVnode.isStatic) &&
+            vnode.key === oldVnode.key &&
+            (isTrue(vnode.idCloned) || isTrue(vnode.isOnce))
+        ) {
+            vnode.componentInstance = oldVnode.componentInstance
+            return
+        }
+
+        var i
+        var data = vnode.data
+        if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
+            i(oldVnode, vnode)
+        }
+    }
+
     function invokeInsertHook(vnode, queue, initial) {
         if (isTrue(initial) && isDef(vnode.parent)) {
             vnode.parent.data.pendingInsert = queue;
@@ -580,11 +607,12 @@ function createPatchFunction(backend) {
         var isInitialPatch = false
 
         var insertedVnodeQueue = []
-        // console.log(oldVnode, vnode)
         if (isUndef(oldVnode)) {
             isInitialPatch = true
             createElm(vnode, insertedVnodeQueue, parentElm, refElm)
         } else {
+            debugger
+            console.log(oldVnode, vnode)
             var isRealElement = isDef(oldVnode.nodeType)
 
             if (!isRealElement && sameVnode(oldVnode, vnode)) {

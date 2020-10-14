@@ -146,6 +146,55 @@ function createComponent(
 
 }
 
+function updateChildComponent(
+    vm,
+    propsData,
+    listeners,
+    parentVnode,
+    renderChildren
+) {
+    var hasChildren = !!(
+        renderChildren ||
+        vm.$options._renderChildren ||
+        parentVnode.data.scopedSlots ||
+        vm.$scopedSlots !== emptyObject
+    )
+
+    vm.$options._parentVnode = parentVnode
+    vm.$vnode = parentVnode
+
+    if (vm._vnode) {
+        vm._vnode.parent = parentVnode
+    }
+    vm.$options._renderChildren = renderChildren
+
+    vm.$attrs = parentVnode.data.attrs || emptyObject
+    vm.$listeners = listeners || emptyObject
+
+    if (propsData && vm.$options.props) {
+        toggleObserving(false)
+        var props = vm._props
+        var propKeys = vm.$options._propKeys || []
+        for (var i = 0; i < propKeys.length; i++) {
+            var key = propKeys[i]
+            var propOptions = vm.$options.props
+            props[key] = validateProp(key, propOptions, propsData, vm)
+        }
+        toggleObserving(true)
+        vm.$options.propsData = propsData
+    }
+
+    listeners = listeners || emptyObject
+    var oldListeners = vm.$options._parentListeners
+    vm.$options._parentListeners = listeners
+    updateComponentListeners(vm, listeners, oldListeners)
+
+    // slot
+    if (hasChildren) {
+
+    }
+}
+
 var componentVNodeHooks = {
     init: function init(
         vnode,
@@ -172,8 +221,16 @@ var componentVNodeHooks = {
         }
     },
 
-    prepatch: function prepatch() {
-
+    prepatch: function prepatch(oldVnode, vnode) {
+        var options = vnode.componentOptions
+        var child = vnode.componentInstance = oldVnode.componentInstance
+        updateChildComponent(
+            child,
+            options.propsData,
+            options.listeners,
+            vnode,
+            options.children
+        )
     },
 
     insert: function insert(vnode) {
