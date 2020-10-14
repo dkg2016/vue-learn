@@ -103,8 +103,7 @@ function mergeHook(
         parentVal ?
         parentVal.concat(childVal) :
         Array.isArray(childVal) ?
-        childVal :
-        [childVal] :
+        childVal : [childVal] :
         parentVal
 }
 LIFECYCLE_HOOKS.forEach(function (hook) {
@@ -128,7 +127,7 @@ ASSET_TYPES.forEach(function (type) {
     strats[type + 's'] = mergeAssets;
 });
 
-function updateListeners (
+function updateListeners(
     on,
     oldOn,
     add,
@@ -141,7 +140,6 @@ function updateListeners (
         def = cur = on[name]
         old = oldOn[name]
         event = normalizeEvent(name)
-        // debugger
         if (isUndef(cur)) {
 
         } else if (isUndef(old)) {
@@ -180,7 +178,6 @@ function initMixin(Vue) {
         var vm = this
         vm._uid = uid$3++
         vm._isVue = true
-
         // 组件 init
         if (options && options._isComponent) {
             initInternalComponent(vm, options)
@@ -231,7 +228,6 @@ function initInternalComponent(vm, options) {
 
     // opts._renderChildren = vnodeComponentOptions.children;
     // opts._componentTag = vnodeComponentOptions.tag;
-    // debugger
     if (options.render) {
         opts.render = options.render;
         opts.staticRenderFns = options.staticRenderFns;
@@ -515,7 +511,6 @@ function initExtend(Vue) {
         Sub.sealedOptions = extend({}, Sub.options)
 
         cachedCtors[SuperId] = Sub
-        console.dir('Sub', Sub)
         return Sub
     }
 }
@@ -548,7 +543,21 @@ function initAssetRegisters(Vue) {
 // 
 
 function mergeDataOrFn(parentVal, childVal, vm) {
-    if (vm) {
+    // 组件合并时没有 vm
+    if (!vm) {
+        if (!childVal) {
+            return parentVal
+        }
+        if (!parentVal) {
+            return childVal
+        }
+        return function mergeDataFn() {
+            return mergeData(
+                typeof childVal === 'function' ? childVal.call(this, this) : childVal,
+                typeof parentVal === 'function' ? parentVal.call(this, this) : parentVal
+            )
+        }
+    } else {
         return function mergedInstanceDataFn() {
             var instanceData = typeof childVal === 'function' ? childVal.call(vm, vm) : childVal
             var defaultData = typeof parentVal === 'function' ? parentVal.call(vm, vm) : parentVal
@@ -648,7 +657,6 @@ function initRender(vm) {
 }
 
 function initState(vm) {
-    // debugger
     vm._watchers = []
     var opts = vm.$options
 
@@ -661,7 +669,6 @@ function initState(vm) {
 function initData(vm) {
     var data = vm.$options.data
     data = vm._data = typeof data === 'function' ? getData(data, vm) : data || {}
-    // debugger
     var keys = Object.keys(data)
     var i = keys.length
 
@@ -687,7 +694,7 @@ function observe(value, asRootData) {
     }
 
     var ob
-    // debugger
+
     if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
         ob = value.__ob__
     } else if (
@@ -726,7 +733,6 @@ var Observer = function Observer(value) {
         augment(value, arrayMethods, arrayKeys)
         this.observeArray(value)
     } else {
-        // debugger
         this.walk(value)
     }
 }

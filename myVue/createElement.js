@@ -153,6 +153,7 @@ var componentVNodeHooks = {
         parentElm,
         refElm
     ) {
+        // debugger
         if (
             vnode.componentInstance &&
             !vnode.componentInstance._isDestroyed &&
@@ -167,7 +168,6 @@ var componentVNodeHooks = {
                 parentElm,
                 refElm
             )
-            // debugger
             child.$mount(hydrating ? vnode.elm : undefined, hydrating)
         }
     },
@@ -176,7 +176,7 @@ var componentVNodeHooks = {
 
     },
 
-    insert: function insert() {
+    insert: function insert(vnode) {
         var context = vnode.context;
         var componentInstance = vnode.componentInstance;
         if (!componentInstance._isMounted) {

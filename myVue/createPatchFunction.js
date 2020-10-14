@@ -417,7 +417,9 @@ function createPatchFunction(backend) {
         i = vnode.data.hook
         // debugger
         if (isDef(i)) {
-            i.create(emptyNode, vnode)
+            if (isDef(i.create)) {
+                i.create(emptyNode, vnode)
+            }
             if (isDef(i.insert)) {
                 insertedVnodeQueue.push(vnode)
             }
@@ -443,15 +445,15 @@ function createPatchFunction(backend) {
 
         if (isDef(tag)) {
             vnode.elm = nodeOps.createElement(tag, vnode)
-
             try {
+                // debugger
                 createChildren(vnode, children, insertedVnodeQueue)
                 // debugger
                 if (isDef(data)) {
                     invokeCreateHooks(vnode, insertedVnodeQueue)
                 }
-            } catch {
-                console.log('createChildren 出错')
+            } catch (e) {
+                console.log('createChildren 出错', e)
             }
             insert(parentElm, vnode.elm, refElm);
         } else if (isTrue(vnode.isComment)) {

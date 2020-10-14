@@ -46,7 +46,7 @@ var Watcher = function Watcher(
             this.getter = function () {}
         }
     }
-
+    
     this.value = this.lazy ? undefined : this.get()
 }
 
@@ -56,6 +56,7 @@ Watcher.prototype.get = function get() {
 
     var value
     var vm = this.vm
+    // debugger
     try {
         value = this.getter.call(vm, vm)
     } catch (e) {
@@ -76,6 +77,7 @@ Watcher.prototype.addDep = function addDep(dep) {
     var id = dep.id
     if (!this.newDepIds.has(id)) {
         this.newDepIds.add(id)
+        // debugger
         this.newDeps.push(dep)
         if (!this.depIds.has(id)) {
             dep.addSub(this)
@@ -99,7 +101,7 @@ Watcher.prototype.cleanupDeps = function cleanupDeps() {
     this.newDepIds = tmp
     this.newDepIds.clear()
     tmp = this.deps
-    this.deps = this.newDepIds
+    this.deps = this.newDeps
     this.newDeps = tmp
     this.newDeps.length = 0
 }
