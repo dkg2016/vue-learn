@@ -175,6 +175,7 @@ var uid$3 = 0
 
 function initMixin(Vue) {
     Vue.prototype._init = function (options) {
+        debugger
         var vm = this
         vm._uid = uid$3++
         vm._isVue = true
@@ -420,7 +421,6 @@ function renderMixin(Vue) {
         vm.$vnode = _parentVnode
 
         var vnode
-
         try {
             vnode = render.call(vm._renderProxy, vm.$createElement)
         } catch (e) {
@@ -589,6 +589,9 @@ function mergeData(to, from) {
 }
 
 function mergeOptions(parent = {}, child, vm) {
+    
+    normalizeProps(child, vm)
+
     var options = {}
     var key
 
@@ -605,7 +608,37 @@ function mergeOptions(parent = {}, child, vm) {
         var strat = strats[key] || defaultStrat
         options[key] = strat(parent[key], child[key], vm, key)
     }
+
     return options
+}
+
+function normalizeProps(options, vm) {
+    var props = options.props
+    if (!props) {
+        return
+    }
+
+    var res = {}
+    var i, val, name
+
+    if (Array.isArray(props)) {
+        i = props.length
+        while (i--) {
+            val = props[i]
+            if (typeof val === 'string') {
+                name = camelize(val)
+                res[name] = {type: null}
+            }
+        }
+    } else if (isPlainObject(props)) {
+        for (var key in props) {
+            val = props[key]
+            name = camelize(key)
+            res[name] = isPlainObject(val) ? val : {type: val}
+        }
+    }
+
+    options.props = res
 }
 
 var activeInstance = null;
@@ -644,7 +677,7 @@ function initEvents(vm) {
 
 var target
 
-function add (event, fn, once) {
+function add(event, fn, once) {
     if (once) {
         target.$once(event, fn)
     } else {
@@ -652,7 +685,7 @@ function add (event, fn, once) {
     }
 }
 
-function remove$1 (event, fn) {
+function remove$1(event, fn) {
     target.$off(event, fn)
 }
 
@@ -684,10 +717,42 @@ function initState(vm) {
     vm._watchers = []
     var opts = vm.$options
 
+    if (opts.props) {
+        initProps(vm, opts.props)
+    }
+
     // 初始化 data
     if (opts.data) {
         initData(vm)
     }
+}
+
+function initProps (vm, propsOptions) {
+    var propsData = vm.$options.propsData || {}
+    var props = vm._props = {}
+
+    var keys = vm.$options._propKeys = []
+    var isRoot = !vm.$parent
+
+    if (!isRoor) {
+        toggleObserving(false)
+    }
+
+    var loop = function (key) {
+        keys.push(key)
+
+        var value = validateProp(key, propsOptions, propsData, vm)
+        defineReactive(props, key, value)
+
+        if ((!key in vm)) {
+            proxy(vm, "_props", key)
+        }
+    }
+
+    for (var key in propsOptions) {
+        loop(key)
+    }
+    toggleObserving(true)
 }
 
 function initData(vm) {

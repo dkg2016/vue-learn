@@ -202,7 +202,7 @@ var componentVNodeHooks = {
         parentElm,
         refElm
     ) {
-        // debugger
+
         if (
             vnode.componentInstance &&
             !vnode.componentInstance._isDestroyed &&
@@ -269,6 +269,7 @@ function createComponentInstanceForVnode(
 
 // 安装组件 patch 过程中的钩子函数
 function installComponentHooks(data) {
+
     var hooks = data.hook || (data.hook = {})
 
     for (var i = 0; i < hooksToMerge.length; i++) {

@@ -31,6 +31,10 @@ var nodeOps = Object.freeze({
 
     removeChild: function (node, child) {
         node.removeChild(child)
+    },
+
+    setTextContent: function setTextContent(node, text) {
+        node.textContent = text
     }
 })
 
@@ -343,23 +347,23 @@ function isNotInFocusAndDirty(elm, checkVal) {
     return notInFocus && elm.value !== checkVal
 }
 
-function isDirtyWithModifiers (elm, newVal) {
+function isDirtyWithModifiers(elm, newVal) {
     var value = elm.value;
     var modifiers = elm._vModifiers; // injected by v-model runtime
     if (isDef(modifiers)) {
-      if (modifiers.lazy) {
-        // inputs with lazy should only be updated when not in focus
-        return false
-      }
-      if (modifiers.number) {
-        return toNumber(value) !== toNumber(newVal)
-      }
-      if (modifiers.trim) {
-        return value.trim() !== newVal.trim()
-      }
+        if (modifiers.lazy) {
+            // inputs with lazy should only be updated when not in focus
+            return false
+        }
+        if (modifiers.number) {
+            return toNumber(value) !== toNumber(newVal)
+        }
+        if (modifiers.trim) {
+            return value.trim() !== newVal.trim()
+        }
     }
     return value !== newVal
-  }
+}
 
 var domProps = {
     create: updateDOMProps,
@@ -400,8 +404,8 @@ function createPatchFunction(backend) {
         return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
     }
 
-    function createRmCb (childElm, listeners) {
-        function remove () {
+    function createRmCb(childElm, listeners) {
+        function remove() {
             if (--remove.listeners === 0) {
                 removeNode(childElm)
             }
@@ -415,7 +419,6 @@ function createPatchFunction(backend) {
             cbs.create[i$1](emptyNode, vnode)
         }
         i = vnode.data.hook
-        // debugger
         if (isDef(i)) {
             if (isDef(i.create)) {
                 i.create(emptyNode, vnode)
@@ -446,9 +449,7 @@ function createPatchFunction(backend) {
         if (isDef(tag)) {
             vnode.elm = nodeOps.createElement(tag, vnode)
             try {
-                // debugger
                 createChildren(vnode, children, insertedVnodeQueue)
-                // debugger
                 if (isDef(data)) {
                     invokeCreateHooks(vnode, insertedVnodeQueue)
                 }
@@ -483,7 +484,7 @@ function createPatchFunction(backend) {
 
     function createComponent(vnode, insertedVnodeQueue, parentElm, refElm) {
         var i = vnode.data
-        // debugger
+
         if (isDef(i)) {
             if (isDef(i = i.hook) && isDef(i = i.init)) {
                 i(vnode, false, parentElm, refElm)
@@ -498,7 +499,7 @@ function createPatchFunction(backend) {
     }
 
     function removeVnodes(parentElm, vnodes, startIdx, endIdx) {
-        // debugger
+
         for (; startIdx <= endIdx; ++startIdx) {
             var ch = vnodes[startIdx]
             if (isDef(ch)) {
@@ -547,7 +548,7 @@ function createPatchFunction(backend) {
             if (isDef(i = data.hook) && isDef(i = i.destroy)) {
                 i(vnode)
             }
-            for (i=0;i<cbs.destroy.length; ++i) {
+            for (i = 0; i < cbs.destroy.length; ++i) {
                 cbs.destroy[i](vnode)
             }
         }
@@ -566,7 +567,7 @@ function createPatchFunction(backend) {
         }
     }
 
-    function patchVnode (oldVnode, vnode, insertedVnodeQueue, removeOnly) {
+    function patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly) {
         if (oldVnode === vnode) {
             return
         }
@@ -576,7 +577,6 @@ function createPatchFunction(backend) {
         if (isTrue(oldVnode.isAsyncPlaceholder)) {
             return
         }
-
         if (isTrue(vnode.isStatic) &&
             isTrue(oldVnode.isStatic) &&
             vnode.key === oldVnode.key &&
@@ -591,6 +591,42 @@ function createPatchFunction(backend) {
         if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
             i(oldVnode, vnode)
         }
+
+        var oldCh = oldVnode.children
+        var ch = vnode.children
+        debugger
+        if (isDef(data) && isPatchable(vnode)) {
+            for (i = 0; i < cbs.update.length; ++i) {
+                cbs.update[i](oldVnode, vnode)
+            }
+            if (isDef(i = data.hook) && isDef(i = i.update)) {
+                i(oldVnode, vnode)
+            }
+        }
+
+        if (isUndef(vnode.text)) {
+            if (isDef(oldCh) && isDef(ch)) {
+                if (oldCh !== ch) {
+                    updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
+                }
+            } else if (isDef(ch)) {
+                if (isDef(oldVnode.text)) {
+                    nodeOps.setTextContent(elm, '')
+                }
+                addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
+            } else if (isDef(oldCh)) {
+                removeVnodes(elm, oldCh, 0, oldCh.length - 1);
+            } else if (isDef(oldVnode.text)) {
+                nodeOps.setTextContent(elm, '');
+            }
+        } else if (oldVnode.text !== vnode.text) {
+            nodeOps.setTextContent(elm, vnode.text);
+        }
+        if (isDef(data)) {
+            if (isDef(i = data.hook) && isDef(i = i.postpatch)) {
+                i(oldVnode, vnode);
+            }
+        }
     }
 
     function invokeInsertHook(vnode, queue, initial) {
@@ -603,16 +639,73 @@ function createPatchFunction(backend) {
         }
     }
 
+    function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
+        var oldStratIdx = 0
+        var newStartIdx = 0
+        var oldEndIdx = oldCh.length - 1
+        var oldStratVnode = oldCh[0]
+        var oldEndVnode = oldCh[oldEndIdx]
+        var newEndIdx = newCh.length - 1
+        var newStartVnode = newCh[0]
+        var newEndVnode = newCh[newEndIdx]
+        var oldKeyToIdx, idxInOld, vnodeToMove, refElm
+
+        var canMove = !removeOnly
+
+        while (oldStratIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+            if (isUndef(oldStratVnode)) {
+                oldStratVnode = oldCh[++oldStratIdx]
+            } else if (isUndef(oldEndVnode)) {
+
+            } else if (sameVnode(oldStratVnode, newStartVnode)) {
+                patchVnode(oldStratVnode, newStartVnode, insertedVnodeQueue)
+                oldStratVnode = oldCh[++oldStratIdx]
+                newStratVnode = newCh[++newStratIdx]
+            } else if (sameVnode(oldEndVnode, newEndVnode)) {
+
+            } else if (sameVnode(oldStratVnode, newEndVnode)) {
+
+            } else if (sameVnode(oldEndVnode, newStartVnode)) {
+
+            } else {
+                if (isUndef(oldKeyToIdx)) {
+                    oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
+                }
+                idxInOld = isDef(newStartVnode.key) ?
+                    oldKeyToIdx[newStartVnode.key] :
+                    findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx)
+
+                if (isUndef(idxInOld)) {
+                    createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx);
+                } else {
+                    vnodeToMove = oldCh[idxInOld]
+                    if (sameVnode(vnodeToMove, newStartVnode)) {
+                        patchVnode(vnodeToMove, newStartVnode, insertedVnodeQueue);
+                        oldCh[idxInOld] = undefined;
+                        canMove && nodeOps.insertBefore(parentElm, vnodeToMove.elm, oldStartVnode.elm)
+                    } else {
+                        createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
+                    }
+                }
+                newStartVnode = newCh[++newStartIdx]
+            }
+        }
+        if (oldStartIdx > oldEndIdx) {
+            refElm = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm;
+            addVnodes(parentElm, refElm, newCh, newStartIdx, newEndIdx, insertedVnodeQueue);
+        } else if (newStartIdx > newEndIdx) {
+            removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx);
+        }
+    }
+
     return function patch(oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
         var isInitialPatch = false
-
         var insertedVnodeQueue = []
         if (isUndef(oldVnode)) {
             isInitialPatch = true
             createElm(vnode, insertedVnodeQueue, parentElm, refElm)
         } else {
-            debugger
-            console.log(oldVnode, vnode)
+            // console.log(oldVnode, vnode)
             var isRealElement = isDef(oldVnode.nodeType)
 
             if (!isRealElement && sameVnode(oldVnode, vnode)) {
@@ -649,9 +742,7 @@ function createPatchFunction(backend) {
                         ancestor = ancestor.parent
                     }
                 }
-                // debugger
                 if (isDef(parentElm$1)) {
-                    // debugger
                     removeVnodes(parentElm$1, [oldVnode], 0, 0)
                 } else if (isDef(oldVnode.tag)) {
                     console.log(oldVnode.tag)

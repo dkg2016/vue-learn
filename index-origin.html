@@ -8,20 +8,65 @@
 </head>
 <body>
     <div id="app"></div>
+    <!-- <button onclick="template.data.msg = Math.random()">Random</button>
+    <button onclick="template.data.msg = 'Hello change'">组件按钮</button>
+    <button onclick="template.data.arr = template.data.arr.reverse()">数组操作</button> -->
 </body>
 <script>
-    let vm = new Vue({
-        el: '#app',
-        data: {
-            name: '原 Vue'
-        },
-        render: function (h) {
-          return h('div', {
-            attrs: {
-              id: 'testId'
-            }
-          }, this.name)
+  let component = {
+    data () {
+      return {
+        items: [
+          {id: 0, val: 'A'},
+          {id: 1, val: 'B'},
+          {id: 2, val: 'C'},
+          {id: 3, val: 'D'}
+        ]
+      }
+    },
+    methods: {
+      change: function () {
+        this.items.reverse().push({id: 4, val: 'E'})
+      }
+    },
+    render: function (h) {
+      return h('div',{},[h('ul',{},this.items.map(function (item) {
+        return h('li',{
+          key: item.id
+        },item.val)
+      })),h('button',{
+        on: {
+          click: this.change
         }
-    })
+      },'change')])
+    }
+  }
+  let vm = new Vue({
+      el: '#app',
+      render: function (h) {
+        return h(component)
+          // return h('div', {
+          //   attrs: {
+          //     id: 'testId',
+          //     class: 'test_class'
+          //   }
+          // }, this.message)
+      }
+  })
+
+
+    // let vm = new Vue({
+    //     el: '#app',
+    //     data: {
+    //         name: '原 Vue'
+    //     },
+    //     render: function (h) {
+    //       return h('div', {
+    //         attrs: {
+    //           id: 'testId'
+    //         }
+    //       }, this.name)
+    //     }
+    // })
 </script>
 </html>

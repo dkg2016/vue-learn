@@ -49,7 +49,6 @@ function sameVnode(a, b) {
         )
     )
 }
-
 var isTextInputType = makeMap('text,number,password,search,email,tel,url')
 
 function sameInputType(a, b) {

@@ -1199,16 +1199,16 @@ strats.data = function (
   vm
 ) {
   if (!vm) {
-    if (childVal && typeof childVal !== 'function') {
-      "development" !== 'production' && warn(
-        'The "data" option should be a function ' +
-        'that returns a per-instance value in component ' +
-        'definitions.',
-        vm
-      );
+    // if (childVal && typeof childVal !== 'function') {
+    //   "development" !== 'production' && warn(
+    //     'The "data" option should be a function ' +
+    //     'that returns a per-instance value in component ' +
+    //     'definitions.',
+    //     vm
+    //   );
 
-      return parentVal
-    }
+    //   return parentVal
+    // }
     return mergeDataOrFn(parentVal, childVal)
   }
 

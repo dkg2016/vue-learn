@@ -17,8 +17,10 @@
 </head>
 <body>
   <div id="app"></div>
-  <button onclick="template.data.msg = Math.random()">Random</button>
+  <!-- <button onclick="template.data.msg = Math.random()">Random</button>
   <button onclick="template.data.msg = 'Hello change'">组件按钮</button>
+  <button onclick="template.data.arr = template.data.arr.reverse()">数组操作</button> -->
+
   <!-- <button onclick="vm.message = 'Hello K'">按钮</button> -->
 </body>
 <style>
@@ -29,7 +31,8 @@
   let template = {
     data: {
       // return {
-        msg: 'from component'
+        msg: 'from component',
+        // arr: [1,2]
       // }
     },
     render: function (h) {
@@ -48,6 +51,9 @@
       },
       // created: function () {
       //   console.log('created called')
+      // },
+      // render: function (h) {
+      //   return h('div',{},this.message)
       // },
       render: function (h) {
         return h(template)
